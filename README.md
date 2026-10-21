@@ -18,7 +18,7 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 
 ## Features
 
-- **8 shapes**, all morphing smoothly into each other: mochi, bean, pebble, squircle, pill, drop, bun, cloud
+- **8 shapes**, all morphing smoothly into each other: mochi, bean, pebble, squircle, pill, drop, kitty, cloud
 - **6 finishes**: matte, soft, jelly, frosted glass, clay, velvet
 - **11 colors**, dot or capsule eyes, and optional blush
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
@@ -43,19 +43,21 @@ mascot.setState('thinking');          // switch state
 mascot.setConfig({ shape: 'cloud', color: '#9CCBFF', material: 'glass' });
 mascot.poke();                        // a little squish
 mascot.lookAt(0.5, -0.3);             // hold the gaze (x, y in -1..1); lookAt(null) to release
+mascot.toSVGString(512);              // still frame as an SVG string
+mascot.addEventListener('poke', () => mascot.setState('happy'));   // fired on click or poke()
 mascot.addEventListener('change', e => console.log(e.detail));
 ```
 
 | Attribute  | Values |
 |------------|--------|
-| `shape`    | `mochi` `bean` `pebble` `squircle` `pill` `drop` `bun` `cloud` |
+| `shape`    | `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias) |
 | `material` | `matte` `soft` `jelly` `glass` `clay` `velvet` |
 | `color`    | `milk` `peach` `butter` `matcha` `mint` `sky` `lilac` `bubblegum` `tangerine` `cocoa` `ink`, or any hex |
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |
 | `state`    | see below |
 
-In the app, **Embed → Copy standalone** gives you a fully self-contained snippet with the component inlined.
+In the app, **Embed as web component** opens a dialog with your current design: **Single snippet** copies a fully self-contained `<script>` with the component inlined, **Script file** gives the `<script src>` version, and you can download `agent-mascot.js` directly.
 
 ## States
 

@@ -9,7 +9,8 @@ var PALETTE = {
 };
 var STATES = ['idle','listening','thinking','talking','working','happy','done','error'];
 var MATERIALS = ['matte','soft','jelly','glass','clay','velvet'];
-var SHAPES = ['mochi','bean','pebble','squircle','pill','drop','bun','cloud'];
+var ALIAS = { bun:'kitty' };
+var SHAPES = ['mochi','bean','pebble','squircle','pill','drop','kitty','cloud'];
 function clamp(x,a,b){ return x<a?a:x>b?b:x; }
 function lerp(a,b,t){ return a+(b-a)*t; }
 function rng(seed){ var s=(seed>>>0)||1; return function(){ s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
@@ -34,12 +35,12 @@ var SHAPE_FN = {
   squircle: function(t){ return se(t,0.95,0.9,4.2); },
   pill: function(t){ var c=Math.cos(t), s=Math.sin(t); return [0.66*c, 0.66*s+0.36*Math.tanh(s*4.5)]; },
   drop: function(t){ var c=Math.cos(t), s=Math.sin(t), k=Math.max(0,-s); return [0.95*c*(1-0.42*Math.pow(k,2.4)), (s>0?0.84:0.95)*s-0.5*Math.pow(k,4)]; },
-  bun: function(t){ var s=Math.sin(t), top=s<0; var p=se(t,1.04, top?0.8:0.5, top?2.1:3.8); var d1=t-(1.5*Math.PI-0.62), d2=t-(1.5*Math.PI+0.62);
+  kitty: function(t){ var s=Math.sin(t), top=s<0; var p=se(t,1.04, top?0.8:0.5, top?2.1:3.8); var d1=t-(1.5*Math.PI-0.62), d2=t-(1.5*Math.PI+0.62);
     var e=Math.exp(-d1*d1/0.03)+Math.exp(-d2*d2/0.03); p[1]-=0.2*e; p[0]*=1-0.06*e; return p; },
   cloud: function(t){ var s=Math.sin(t), c=Math.cos(t), top=s<0; var p=se(t,1.08, top?0.98:0.5, top?2.1:4.0);
     var phi=Math.atan2(c,-s), w=clamp((-s+0.3)/0.55,0,1); var b=1+0.11*(Math.abs(Math.cos(2.5*phi))-0.62)*w; return [p[0]*b,p[1]*b]; }
 };
-var FACE = { mochi:[0.53,0.34], bean:[0.44,0.37], pebble:[0.5,0.33], squircle:[0.5,0.34], pill:[0.4,0.42], drop:[0.6,0.36], bun:[0.58,0.32], cloud:[0.54,0.32] };
+var FACE = { mochi:[0.53,0.34], bean:[0.44,0.37], pebble:[0.5,0.33], squircle:[0.5,0.34], pill:[0.4,0.42], drop:[0.6,0.36], kitty:[0.58,0.32], cloud:[0.54,0.32] };
 var GEO = {};
 SHAPES.forEach(function(name){
   var fn=SHAPE_FN[name], p=new Float64Array(N*2), i, A=0, cx=0;
@@ -49,7 +50,9 @@ SHAPES.forEach(function(name){
   for(i=0;i<N;i++){ p[2*i]=(p[2*i]-cx)*sc; p[2*i+1]*=sc; maxY=Math.max(maxY,p[2*i+1]); }
   for(i=0;i<N;i++){ p[2*i+1]+=0.9-maxY; minY=Math.min(minY,p[2*i+1]); hw=Math.max(hw,Math.abs(p[2*i])); }
   for(i=0;i<2*N;i++) p[i]*=S;
-  var f=FACE[name]; GEO[name]={ p:p, top:minY*S, bot:0.9*S, hw:hw*S, fy:(minY+(0.9-minY)*f[0])*S, sp:hw*S*f[1] };
+  var f=FACE[name], ear=null;
+  if(name==='kitty'){ ear=new Float64Array(N*2); for(i=0;i<N;i++){ var tt=i/N*TAU, d1=tt-(1.5*Math.PI-0.62), d2=tt-(1.5*Math.PI+0.62); ear[2*i]=Math.exp(-d1*d1/0.03); ear[2*i+1]=Math.exp(-d2*d2/0.03); } }
+  GEO[name]={ ear:ear, p:p, top:minY*S, bot:0.9*S, hw:hw*S, fy:(minY+(0.9-minY)*f[0])*S, sp:hw*S*f[1] };
 });
 function pathD(p){
   var d='', i, r=function(v){ return Math.round(v*100)/100; };
@@ -86,7 +89,7 @@ class AgentMascot extends HTMLElement {
     var g = GEO.mochi; this.from = Float64Array.from(g.p); this.to = Float64Array.from(g.p); this.cur = Float64Array.from(g.p);
     this.fg = { top:g.top, hw:g.hw, fy:g.fy, sp:g.sp }; this.tg = Object.assign({}, this.fg);
     this.k = { morph:1, morphV:0, s:0, sV:0, ox:0, oy:0, oxV:0, oyV:0, gx:0, gy:0, gxV:0, gyV:0, bx:0, by:0, bxV:0, byV:0,
-      eye:1, eyeV:0, lidS:1, expr:0, exprV:0, badge:0, badgeV:0, tilt:0, tiltV:0 };
+      eye:1, eyeV:0, eL:0, eLV:0, eR:0, eRV:0, lidS:1, expr:0, exprV:0, badge:0, badgeV:0, tilt:0, tiltV:0 };
     this.col = hex2rgb(this.cfg.color); this.colFrom = this.col.slice(); this.colTo = this.col.slice(); this.colT = 1;
     this.blink = { next:1.4, t:-1 }; this.drift = { next:0.6, x:0, y:0 };
     this.st = { t:0, prev:'idle', shakeT:-9, hopT:0, landed:true, exprMode:'happy', exprUntil:0 };
@@ -111,8 +114,9 @@ class AgentMascot extends HTMLElement {
   setState(s){ this.setConfig({state:s}); return this; }
   setConfig(c, fromAttr){
     var C = this.cfg, still = this.hasAttribute('still');
-    if(c.shape && GEO[c.shape] && c.shape!==C.shape){ C.shape=c.shape; this.from=Float64Array.from(this.cur); this.to=GEO[c.shape].p;
-      this.fgFrom=Object.assign({}, this.fg); var g=GEO[c.shape]; this.tg={top:g.top,hw:g.hw,fy:g.fy,sp:g.sp};
+    var shp = c.shape && (ALIAS[c.shape] || c.shape);
+    if(shp && GEO[shp] && shp!==C.shape){ C.shape=shp; this.from=Float64Array.from(this.cur); this.to=GEO[shp].p;
+      this.fgFrom=Object.assign({}, this.fg); var g=GEO[shp]; this.tg={top:g.top,hw:g.hw,fy:g.fy,sp:g.sp};
       this.k.morph=0; this.k.morphV=0; if(still){ this.k.morph=1; } else this.k.sV-=1.4; }
     if(c.color){ var hx=resolveColor(c.color); if(hx.toLowerCase()!==C.color.toLowerCase()){ C.color=hx; this.colFrom=this.col.slice(); this.colTo=hex2rgb(hx); this.colT=still?1:0; } }
     if(c.material && MATERIALS.indexOf(c.material)>=0 && c.material!==C.material){ C.material=c.material; this._buildMaterial(); if(!still) this.k.sV-=1.8; }
@@ -126,7 +130,8 @@ class AgentMascot extends HTMLElement {
     this.dispatchEvent(new CustomEvent('change',{detail:this.config}));
     return this;
   }
-  poke(){ this.k.sV -= 3.2; this.k.tiltV += (this.rand()-0.5)*40; return this; }
+  poke(){ this.k.sV -= 3.2; this.k.tiltV += (this.rand()-0.5)*40; this._twitch(this.rand()<0.5?0:1, 1); this.dispatchEvent(new CustomEvent('poke')); return this; }
+  _twitch(side, amt){ var k=this.k; if(side!==1) k.eLV -= 26*amt; if(side!==0) k.eRV -= 26*amt*(side===2?0.8:1); }
   lookAt(gx,gy){ this.look = (gx==null)?null:[gx,gy]; return this; }
   _enterState(){
     var s=this.cfg.state, st=this.st; st.t=0;
@@ -274,7 +279,7 @@ class AgentMascot extends HTMLElement {
     if(s==='working'){ var sc2=(t*0.75)%1; gx=-0.55+sc2*1.1; gy=0.32; lid=0.86; bob=-2.6*Math.abs(Math.sin(t*TAU*2.2)); sT=0.012*Math.sin(t*TAU*2.2); blinkRate=0.5; }
     if(s==='happy'){ exprT=1; mode='happy'; var per=0.92, air=0.44; st.hopT+=dt; var hp=st.hopT%per;
       if(hp<air){ var u2=hp/air; hop=26*4*u2*(1-u2); sT=0.05; if(st.landed){ st.landed=false; k.sV+=2.4; } }
-      else { if(!st.landed){ st.landed=true; k.sV-=3.6; if(this.rand()<0.7) this._burst(2); } } gy=-0.15; }
+      else { if(!st.landed){ st.landed=true; k.sV-=3.6; this._twitch(2, 0.8); if(this.rand()<0.7) this._burst(2); } } gy=-0.15; }
     if(s==='done'){ badgeT=1; if(st.t<st.exprUntil){ exprT=1; mode='happy'; } gy=-0.1; }
     if(s==='error'){ badgeT=1; exprT=1; mode='chev'; sT=-0.045; tiltT=-3; gy=0.15; gx*=0.3;
       if(st.t-st.shakeT>2.8) { st.shakeT=st.t; }
@@ -293,8 +298,9 @@ class AgentMascot extends HTMLElement {
       k.exprV+=(320*(exprT-k.expr)-30*k.exprV)*h; k.expr+=k.exprV*h;
       k.badgeV+=(320*(badgeT-k.badge)-16*k.badgeV)*h; k.badge+=k.badgeV*h;
       k.tiltV+=(120*(tiltT-k.tilt)-12*k.tiltV)*h; k.tilt+=k.tiltV*h;
+      k.eLV+=(600*(0-k.eL)-14*k.eLV)*h; k.eL+=k.eLV*h; k.eRV+=(600*(0-k.eR)-14*k.eRV)*h; k.eR+=k.eRV*h;
     }
-    if(still){ k.morph=1; k.s=sT; k.gx=gx; k.gy=gy; k.bx=gx; k.by=gy; k.eye=eyeT; k.expr=exprT; k.badge=badgeT; k.tilt=tiltT; k.ox=k.oy=0; }
+    if(still){ k.eL=k.eR=k.eLV=k.eRV=0; k.morph=1; k.s=sT; k.gx=gx; k.gy=gy; k.bx=gx; k.by=gy; k.eye=eyeT; k.expr=exprT; k.badge=badgeT; k.tilt=tiltT; k.ox=k.oy=0; }
     if(mode!==st.exprMode && k.expr<0.05) st.exprMode=mode; if(exprT>0) st.exprMode=mode;
     // blink
     var B=this.blink, lidB=1;
@@ -304,6 +310,8 @@ class AgentMascot extends HTMLElement {
     // shape morph
     var m=k.morph, p=this.cur, A=this.from, Z=this.to;
     for(i=0;i<2*N;i++) p[i]=A[i]+(Z[i]-A[i])*m;
+    var EA=GEO[C.shape].ear; if(EA && (Math.abs(k.eL)>1e-3 || Math.abs(k.eR)>1e-3)){ var ew=clamp(m,0,1)*S;
+      for(i=0;i<N;i++){ var wl=EA[2*i]*k.eL, wr=EA[2*i+1]*k.eR; p[2*i+1]+=(wl+wr)*0.09*ew; p[2*i]+=(-wl+wr)*0.045*ew; } }
     if(this.fgFrom){ var F=this.fgFrom, T=this.tg; this.fg={top:lerp(F.top,T.top,m), hw:lerp(F.hw,T.hw,m), fy:lerp(F.fy,T.fy,m), sp:lerp(F.sp,T.sp,m)}; if(m>0.999 && Math.abs(k.morphV)<0.01) this.fgFrom=null; }
     this._render({hop:hop, shakeX:shakeX, bob:bob, pulse:pulse, breath: still?0:Math.sin(t*TAU/(s==='listening'?2.6:3.8))*0.012, still:still});
   }
@@ -396,7 +404,7 @@ class AgentMascot extends HTMLElement {
 }
 AgentMascot.manual = false;
 AgentMascot.tick = function(dt){ live.forEach(function(m){ m.step(dt); }); };
-AgentMascot.PALETTE = PALETTE; AgentMascot.STATES = STATES; AgentMascot.MATERIALS = MATERIALS; AgentMascot.SHAPES = SHAPES;
+AgentMascot.PALETTE = PALETTE; AgentMascot.STATES = STATES; AgentMascot.MATERIALS = MATERIALS; AgentMascot.SHAPES = SHAPES; AgentMascot.ALIASES = ALIAS;
 window.AgentMascot = AgentMascot;
 customElements.define('agent-mascot', AgentMascot);
 })();
