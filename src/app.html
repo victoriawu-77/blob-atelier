@@ -307,7 +307,7 @@ var AM=window.AgentMascot, stage=document.getElementById('stage'); window.mascot
 var BG='#F4F3F0', $=function(id){ return document.getElementById(id); };
 var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet'};
 var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine','cocoa','ink'];
-var state={shape:'mochi',color:'peach',material:'jelly',eyes:'dot',cheeks:true,state:'idle'};
+var state={shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,state:'idle'};
 // hash
 function readHash(){ var h=location.hash.slice(1); if(!h) return; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; }); if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; }
 function writeHash(){ var h='shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
