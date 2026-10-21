@@ -60,14 +60,14 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .rnd svg{width:18px;height:18px;flex:none;transition:transform .45s var(--ease)}
 .rnd:hover svg{transform:rotate(-14deg)}
 .rnd .l-short{display:none}
-.corner{position:absolute;right:32px;bottom:24px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.hint{color:#A1A1A7;font-size:12.5px;padding-right:4px}
-.gh{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 14px;border-radius:14px;background:#FFFFFF;color:#1D1D1F;text-decoration:none;font-size:14px;font-weight:540;letter-spacing:-.005em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.03);transition:background .2s var(--ease),box-shadow .2s var(--ease)}
+.corner{position:absolute;right:32px;bottom:16px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;gap:0}
+.hint{color:#A1A1A7;font-size:12.5px;line-height:16px;padding-right:3px}
+.gh{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px 0 11px;border-radius:11px;background:#FFFFFF;color:#1D1D1F;text-decoration:none;font-size:13px;font-weight:440;letter-spacing:-.005em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.03);transition:background .2s var(--ease),box-shadow .2s var(--ease)}
 .gh:hover{background:#FAFAF8;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 2px 8px rgba(0,0,0,.05)}
 .gh:focus-visible{outline:2px solid #1D1D1F;outline-offset:3px}
-.gh-mark{width:18px;height:18px;flex:none}
-.gh-arr{width:14px;height:14px;flex:none;color:#9A9AA0;margin-left:2px;transition:transform .25s var(--ease),color .2s}
-.gh:hover .gh-arr{transform:translate(2px,-2px);color:#6E6E73}
+.gh-mark{width:15px;height:15px;flex:none}
+.gh-arr{width:11px;height:11px;flex:none;color:#9A9AA0;margin-left:1px;transition:transform .25s var(--ease),color .2s}
+.gh:hover .gh-arr{transform:translate(1.5px,-1.5px);color:#6E6E73}
 #stage{position:absolute;left:50%;top:46%;width:min(62vh,58vw);height:min(62vh,58vw);transform:translate(-50%,-50%)}
 .states{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,.72);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 8px 30px rgba(30,20,60,.08),0 0 0 1px rgba(0,0,0,.04)}
 .states button{border:0;background:transparent;font:inherit;font-size:13px;color:#55555B;padding:7px 14px;border-radius:999px;cursor:pointer;transition:background .25s var(--ease),color .25s var(--ease)}
