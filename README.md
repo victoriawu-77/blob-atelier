@@ -9,7 +9,8 @@
 <p align="center">
   <a href="https://victoriawu-77.github.io/blob-atelier/"><b>Try it →</b></a> &nbsp;·&nbsp;
   <a href="assets/demo.mp4">Watch the 12s demo</a> &nbsp;·&nbsp;
-  <a href="agent-mascot.js">agent-mascot.js</a>
+  <a href="agent-mascot.js">agent-mascot.js</a> &nbsp;·&nbsp;
+  <a href="https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895"><b>Remix on Happycapy</b></a>
 </p>
 
 ---
@@ -70,7 +71,11 @@ In the app, **Embed as web component** opens a dialog with your current design: 
 | `working`   | Scanning eyes, a busy bob, and a little orbiting dot |
 | `happy`     | Hops with squash and stretch, happy eyes, sparkles |
 | `done`      | Green check badge and a sparkle burst |
-| `error`     | Red "!" badge, `> <` eyes, a small shake and a droop |
+| `error`     | Red "!" badge, `< >` eyes, a small shake and a droop |
+
+## Remix it, no code needed
+
+Don't write code? Open the [Happycapy remix link](https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895) and you get your own copy of Blob Atelier. Describe the change you want in plain words, like "add a sleepy state", "make the kitty's ears bigger" or "translate the panel into Japanese", and Happycapy edits the project for you. You can preview your version live and share it.
 
 ## Develop
 
@@ -88,6 +93,14 @@ There's nothing to install. Open `index.html` in a browser. The GIF encoder ([gi
   Vibe-coded with <a href="https://happycapy.ai">Happycapy</a><br>
   by <a href="https://x.com/victoriawu77">Victoria Wu (@victoriawu77)</a>
 </p>
+
+## Contributors
+
+- [Victoria Wu](https://github.com/victoriawu-77) ([@victoriawu77](https://x.com/victoriawu77)): idea, design and direction
+- [Happycapy](https://github.com/happycapy-ai) ([happycapy.ai](https://happycapy.ai)): the original app, motion, states and exports, built with Victoria; also hosts the no-code remix
+- [Cursor Agent](https://cursor.com): repository setup, v1 import and later polish
+
+Contributions are welcome. Open an issue or a pull request, or [remix it on Happycapy](https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895) if you'd rather describe your idea than code it.
 
 ## License
 
