@@ -153,7 +153,7 @@ class AgentMascot extends HTMLElement {
     this.gJelly=grad('linearGradient','jelly',{x1:'0',y1:'0',x2:'.25',y2:'1'},3);
     this.gVel=grad('radialGradient','velvet',{cx:'.45',cy:'.42',r:'.7'},3);
     this.gClay=grad('radialGradient','clay',{cx:'.4',cy:'.3',r:'.95'},2);
-    var sh=grad('radialGradient','shadow',{},2); sh.children[0].setAttribute('offset','0'); sh.children[0].setAttribute('stop-color','#2a2140'); sh.children[0].setAttribute('stop-opacity','.2');
+    var sh=grad('radialGradient','shadow',{},2); sh.children[0].setAttribute('offset','0'); sh.children[0].setAttribute('stop-color','#2a2140'); sh.children[0].setAttribute('stop-opacity','.2'); sh.children[0].setAttribute('style','stop-color:var(--am-shadow,#2a2140);stop-opacity:var(--am-shadow-opacity,.2)');
     sh.children[1].setAttribute('offset','1'); sh.children[1].setAttribute('stop-color','#2a2140'); sh.children[1].setAttribute('stop-opacity','0');
     [2,4,8,13,20].forEach(function(b){ var f=el('filter',{id:U+'-b'+b,x:'-60%',y:'-60%',width:'220%',height:'220%'},defs); el('feGaussianBlur',{stdDeviation:b*0.5},f); });
     var fz=el('filter',{id:U+'-fuzz',x:'-15%',y:'-15%',width:'130%',height:'130%'},defs);
