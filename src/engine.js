@@ -9,9 +9,10 @@ var PALETTE = {
 };
 var STATES = ['idle','listening','thinking','talking','working','happy','done','error'];
 var MATERIALS = ['matte','soft','jelly','glass','clay','velvet'];
-var FABRICS = ['felt','plush','knit'];
+var FABRICS = ['plush','felt','fluffy'];
+var ACCESSORIES = ['none','beret','glasses','sunglasses']; // 3D animals only
 var ALL_MATERIALS = MATERIALS.concat(FABRICS);
-var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'plush', wool:'felt', knitted:'knit' };
+var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'fluffy', wool:'felt', knit:'felt', velour:'plush', fuzzy:'fluffy' };
 var SHAPES = ['mochi','bean','pebble','squircle','pill','drop','kitty','cloud'];
 var ANIMALS = ['bunny','cat','dog','frog','hamster','bear','panda','chick'];
 var SERIES = { blobs:{ shapes:SHAPES, materials:MATERIALS }, animals:{ shapes:ANIMALS, materials:FABRICS } };
@@ -122,6 +123,17 @@ function pathD(p){
   }
   return d+'Z';
 }
+/*ANIMALS3D*/
+/* ---------- 3D animals: three.js is imported only when an animal is first shown ---------- */
+var G3={ st:0, A:null, p:null, q:[], busy:false };
+var GL2=null; function hasGL2(){ if(GL2!==null) return GL2; try{ var c=document.createElement('canvas'); return GL2=!!(window.WebGL2RenderingContext && c.getContext('webgl2')); }catch(e){ return GL2=false; } }
+function load3D(){ if(G3.p) return G3.p;
+  if(AgentMascot.no3D || typeof AM3D!=='function' || !hasGL2()){ G3.st=-1; G3.p=Promise.reject(new Error('WebGL2 unavailable')); G3.p.catch(function(){}); return G3.p; }
+  G3.p=import(AgentMascot.THREE_URL).then(function(T){ G3.A=AM3D(T); G3.st=1; return G3.A; }, function(e){ G3.st=-1; console.warn('agent-mascot: 3D animals unavailable, using the SVG fallback.', e); throw e; });
+  G3.p.catch(function(){}); return G3.p; }
+// meshing a shape takes a few dozen ms, so do one per task instead of freezing a page full of tiles
+function needShape(name, cb){ G3.q.push([name,cb]); if(!G3.busy){ G3.busy=true; setTimeout(pump3,0); } }
+function pump3(){ var it=G3.q.shift(); if(!it){ G3.busy=false; return; } try{ G3.A.shapeData(it[0]); }catch(e){ console.warn(e); } try{ it[1](); }catch(e){ console.warn(e); } setTimeout(pump3,0); }
 var STAR='M0,-1C0.12,-0.12 0.12,-0.12 1,0C0.12,0.12 0.12,0.12 0,1C-0.12,0.12 -0.12,0.12 -1,0C-0.12,-0.12 -0.12,-0.12 0,-1Z';
 
 /* ---------- shared clock + pointer ---------- */
@@ -135,13 +147,13 @@ var uidN = 0;
 function el(tag, attrs, parent){ var e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(var k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
 
 class AgentMascot extends HTMLElement {
-  static get observedAttributes(){ return ['shape','color','material','state','eyes','cheeks','still','seed']; }
+  static get observedAttributes(){ return ['shape','color','material','state','eyes','cheeks','accessory','still','seed']; }
   constructor(){
     super();
     this.uid = 'am'+(++uidN)+Math.random().toString(36).slice(2,6);
     var root = this.attachShadow({mode:'open'});
-    root.innerHTML = '<style>:host{display:inline-block;width:240px;height:240px;position:relative;-webkit-tap-highlight-color:transparent}svg{width:100%;height:100%;display:block;overflow:visible;touch-action:none;cursor:grab;user-select:none}svg:active{cursor:grabbing}</style>';
-    this.cfg = { shape:'mochi', color:PALETTE.peach, material:'jelly', state:'idle', eyes:'dot', cheeks:true };
+    root.innerHTML = '<style>:host{display:inline-block;width:240px;height:240px;position:relative;-webkit-tap-highlight-color:transparent}svg{width:100%;height:100%;display:block;position:relative;overflow:visible;touch-action:none;cursor:grab;user-select:none}svg:active{cursor:grabbing}</style>';
+    this.cfg = { shape:'mochi', color:PALETTE.peach, material:'jelly', state:'idle', eyes:'dot', cheeks:true, accessory:'none' };
     this.t = 0; this.rand = rng(7);
     var g = GEO.mochi; this.from = Float64Array.from(g.p); this.to = Float64Array.from(g.p); this.cur = Float64Array.from(g.p);
     this.fg = { top:g.top, hw:g.hw, fy:g.fy, sp:g.sp }; this.tg = Object.assign({}, this.fg);
@@ -150,11 +162,14 @@ class AgentMascot extends HTMLElement {
     this.col = hex2rgb(this.cfg.color); this.colFrom = this.col.slice(); this.colTo = this.col.slice(); this.colT = 1;
     this.blink = { next:1.4, t:-1 }; this.drift = { next:0.6, x:0, y:0 };
     this.st = { t:0, prev:'idle', shakeT:-9, hopT:0, landed:true, exprMode:'happy', exprUntil:0 };
+    this.x3=0; this._vis=true; this._emaN=0; this._shOp=0.5; this._shN=0;
     this.sparks = []; this.look = null; this.drag = null;
     this._build();
   }
-  connectedCallback(){ this._apply(); if(!this.hasAttribute('still')) live.add(this); this.step(0); }
+  connectedCallback(){ this._apply(); if(!this.hasAttribute('still')) live.add(this); this._readShadow(); this.step(0);
+    var self=this; if(!this._io && window.IntersectionObserver){ this._io=new IntersectionObserver(function(es){ self._vis=es[es.length-1].isIntersecting; if(self._vis) self.step(0); }); this._io.observe(this); } }
   disconnectedCallback(){ live.delete(this); }
+  get is3D(){ return !!(this.view3 && this.x3>0.5 && this._want3d()); }
   attributeChangedCallback(n,o,v){
     if(n==='still'){ if(v!==null) live.delete(this); else if(this.isConnected) live.add(this); return; }
     if(n==='seed'){ this.rand = rng(parseInt(v,10)||7); return; }
@@ -162,7 +177,7 @@ class AgentMascot extends HTMLElement {
   }
   _apply(){
     var a = {};
-    ['shape','color','material','state','eyes'].forEach(function(k){ if(this.hasAttribute(k)) a[k]=this.getAttribute(k); }, this);
+    ['shape','color','material','state','eyes','accessory'].forEach(function(k){ if(this.hasAttribute(k)) a[k]=this.getAttribute(k); }, this);
     if(this.hasAttribute('cheeks')) a.cheeks = this.getAttribute('cheeks')!=='false';
     this.setConfig(a, true);
   }
@@ -180,8 +195,9 @@ class AgentMascot extends HTMLElement {
     if(mat && ALL_MATERIALS.indexOf(mat)>=0 && mat!==C.material){ c.material=mat; C.material=c.material; this._buildMaterial(); if(!still) this.k.sV-=1.8; }
     if(c.eyes && (c.eyes==='dot'||c.eyes==='capsule')) C.eyes=c.eyes;
     if(c.cheeks!==undefined) C.cheeks=!!c.cheeks;
+    if(c.accessory && ACCESSORIES.indexOf(c.accessory)>=0) C.accessory=c.accessory;
     if(c.state && STATES.indexOf(c.state)>=0 && c.state!==C.state){ this.st.prev=C.state; C.state=c.state; this._enterState(); }
-    if(!fromAttr){ this._building=true; ['shape','material','state','eyes'].forEach(function(k){ this.setAttribute(k,C[k]); },this);
+    if(!fromAttr){ this._building=true; ['shape','material','state','eyes'].forEach(function(k){ this.setAttribute(k,C[k]); },this); if(C.accessory!=='none' || this.hasAttribute('accessory')) this.setAttribute('accessory',C.accessory);
       var nm=null; for(var p in PALETTE) if(PALETTE[p].toLowerCase()===C.color.toLowerCase()) nm=p; this.setAttribute('color', nm||C.color);
       this.setAttribute('cheeks', C.cheeks?'true':'false'); this._building=false; }
     if(still || !live.has(this)) this.step(0);
@@ -292,15 +308,14 @@ class AgentMascot extends HTMLElement {
     if(FABRICS.indexOf(m)>=0){
       M.lt=mk('path',{'class':'bp',fill:'none',stroke:'#fff','stroke-width':'30',opacity:m==='plush'?'.34':'.4',filter:B(13),transform:'translate(-9 -11)'});
       M.dk=mk('path',{'class':'bp',fill:'none','stroke-width':'34',opacity:'.3',filter:B(13),transform:'translate(9 13)'});
-      if(m==='plush') M.sheen=mk('path',{'class':'bp',fill:'none','stroke-width':'10',opacity:'.5',filter:B(8)});
-      if(m==='knit') M.tex=mk('rect',{x:'-160',y:'-165',width:'320',height:'320',fill:'url(#'+U+'-knitp)',opacity:'.9'});
-      this.gSkin.setAttribute('filter','url(#'+U+'-'+m+'F)');
+      if(m!=='felt') M.sheen=mk('path',{'class':'bp',fill:'none','stroke-width':'10',opacity:'.5',filter:B(8)});
+      this.gSkin.setAttribute('filter','url(#'+U+'-'+(m==='felt'?'felt':'plush')+'F)');
     }
     this.bps=Array.prototype.slice.call(this.svg.querySelectorAll('.bp'));
     this._partsMaterial(this.parts); this._partsMaterial(this.partsOld);
     this._paint(true);
   }
-  /* ---------- fabric finishes: SVG filters for fibres, fuzz and stitches ---------- */
+  /* ---------- fabric finishes, SVG fallback (no WebGL, or while three.js loads) ---------- */
   _fabricDefs(defs){
     var U=this.uid, F=function(id,x){ return el('filter',{id:U+'-'+id,x:x||'-20%',y:x||'-20%',width:'140%',height:'140%','color-interpolation-filters':'sRGB'},defs); };
     function light(f,inp,ss,az,elv,res){ var l=el('feDiffuseLighting',{'in':inp,surfaceScale:ss,diffuseConstant:'1','lighting-color':'#fff',result:res},f); el('feDistantLight',{azimuth:az,elevation:elv},l); }
@@ -334,23 +349,6 @@ class AgentMascot extends HTMLElement {
     el('feGaussianBlur',{'in':'fr',stdDeviation:'1.6',result:'frb'},f);
     el('feColorMatrix',{'in':'frb',type:'matrix',values:'1 0 0 0 .05  0 1 0 0 .05  0 0 1 0 .05  0 0 0 .75 0',result:'fringe'},f);
     mg=el('feMerge',{},f); el('feMergeNode',{'in':'fringe'},mg); el('feMergeNode',{'in':'body'},mg);
-    // knit: stitches come from a pattern; the filter adds yarn fuzz and a bumpy edge
-    f=F('knitF');
-    el('feTurbulence',{type:'fractalNoise',baseFrequency:'.32',numOctaves:'1',seed:'4',result:'bump'},f);
-    el('feTurbulence',{type:'fractalNoise',baseFrequency:'1.6',numOctaves:'2',seed:'9',result:'fz'},f);
-    el('feDisplacementMap',{'in':'SourceGraphic',in2:'bump',scale:'4',xChannelSelector:'R',yChannelSelector:'G',result:'s0'},f);
-    el('feDisplacementMap',{'in':'s0',in2:'fz',scale:'2.5',xChannelSelector:'R',yChannelSelector:'G',result:'s1'},f);
-    light(f,'fz','.8','235','64','lit');
-    el('feComposite',{'in':'s1',in2:'lit',operator:'arithmetic',k1:'.9',k2:'.2',k3:'0',k4:'0',result:'tx'},f);
-    el('feComposite',{'in':'tx',in2:'s1',operator:'in'},f);
-    var pt=el('pattern',{id:U+'-knitp',patternUnits:'userSpaceOnUse',width:'11',height:'9.5'},defs);
-    var leg='M0,-5.2C2.6,-5.2 3.6,-1.5 2.2,2.6C1.4,4.8 -1.4,4.8 -2.2,2.6C-3.6,-1.5 -2.6,-5.2 0,-5.2Z';
-    [[2.9,4.75,-34],[8.1,4.75,34],[2.9,-4.75,-34],[8.1,-4.75,34],[2.9,14.25,-34],[8.1,14.25,34]].forEach(function(q){
-      var g=el('g',{transform:'translate('+q[0]+' '+q[1]+') rotate('+q[2]+')'},pt);
-      el('path',{d:leg,fill:'none',stroke:'#2a1a22','stroke-width':'1.3',opacity:'.42'},g);
-      el('path',{d:'M-.5,-3.6C1,-3.4 1.5,-1.2 1,1.2',fill:'none',stroke:'#fff','stroke-width':'1.2','stroke-linecap':'round',opacity:'.4'},g);
-    });
-    el('path',{d:'M5.5,-1V11',stroke:'#2a1a22','stroke-width':'1.4',opacity:'.35'},pt);
     // gradients for parts (ears, tails, patches)
     var self=this; ['pB','pD','pI','pL'].forEach(function(k){ var g=el('radialGradient',{id:U+'-'+k,cx:'.36',cy:'.3',r:'.9'},defs); for(var i=0;i<3;i++) el('stop',{},g); self['g'+k]=g; });
     this.gFab=el('radialGradient',{id:U+'-fab',cx:'.38',cy:'.3',r:'.92'},defs); for(var i=0;i<3;i++) el('stop',{},this.gFab);
@@ -384,7 +382,7 @@ class AgentMascot extends HTMLElement {
   _partsMaterial(P){
     if(!P) return; var m=this.cfg.material, U=this.uid, fab=FABRICS.indexOf(m)>=0;
     P.items.forEach(function(it){
-      if(it.tex){ if(m==='knit'){ it.tex.setAttribute('fill','url(#'+U+'-knitp)'); it.tex.setAttribute('opacity','.9'); } else it.tex.setAttribute('opacity','0'); }
+      if(it.tex) it.tex.setAttribute('opacity','0');
     });
     P.fab=fab;
   }
@@ -511,7 +509,7 @@ class AgentMascot extends HTMLElement {
     var tilt=k.tilt+k.bx*2.5;
     var tr='translate('+bx.toFixed(2)+' '+by.toFixed(2)+') translate(0 90) rotate('+tilt.toFixed(2)+') scale('+sx.toFixed(4)+' '+sy.toFixed(4)+') translate(0 -90)';
     if(dl>0.3) tr+=' rotate('+ang.toFixed(2)+' 0 0) scale('+(1+ex).toFixed(4)+' '+(1/(1+ex)).toFixed(4)+') rotate('+(-ang).toFixed(2)+' 0 0)';
-    this.gBody.setAttribute('transform',tr);
+    this.gBody.setAttribute('transform',tr); o.sx=sx; o.sy=sy; o.tilt=tilt; o.bx=bx; o.by=by;
     // shadow
     var lift=Math.max(0,o.hop-o.bob+Math.max(0,-k.oy*0.5));
     this.shadow.setAttribute('cx',(bx*0.6).toFixed(2)); this.shadow.setAttribute('cy','95');
@@ -581,6 +579,44 @@ class AgentMascot extends HTMLElement {
       var X3=Math.cos(q.a)*rad+bx, Y3=cyB+Math.sin(q.a)*rad*0.95+by;
       S2.setAttribute('transform','translate('+X3.toFixed(1)+' '+Y3.toFixed(1)+') rotate('+(life*90).toFixed(1)+') scale('+Math.max(0.01,sc2).toFixed(3)+')'); S2.setAttribute('opacity',q.t<0?'0':'1'); }
     if(!o.still){ this._sparkClock(); }
+    if(this.cv3 || this._want3d()) this._render3d(o);
+  }
+  /* ---------- 3D ---------- */
+  _want3d(){ return ANIMALS.indexOf(this.cfg.shape)>=0 && G3.st!==-1; }
+  _readShadow(){ var v=parseFloat(getComputedStyle(this).getPropertyValue('--am-shadow-opacity')); this._shOp = isNaN(v)?0.5:clamp(v*1.8,0.3,0.9); }
+  _blend3(x){ this.x3=x; if(this.cv3) this.cv3.style.opacity=String(x); var hide=x>=0.999, op=String(1-x);
+    [this.gSkin,this.gFace,this.shadow].forEach(function(g){ g.style.display=hide?'none':''; g.style.opacity=op; }); }
+  _render3d(o){
+    var self=this, C=this.cfg, want=this._want3d(), tn=now(), dt=Math.min(0.1,tn-(this._t3||tn)); this._t3=tn;
+    if(want && !this.cv3){ var cv=document.createElement('canvas'); cv.setAttribute('aria-hidden','true'); cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:0'; this.shadowRoot.insertBefore(cv,this.svg); this.cv3=cv; this.ctx3=cv.getContext('2d'); }
+    if(want && G3.st===0){ load3D().then(function(){ self.step(0); }, function(){ self._blend3(0); self.step(0); }); }
+    var ready = want && G3.st===1;
+    if(ready && !this.view3){ try{ this.view3=new G3.A.View(); }catch(e){ console.warn(e); G3.st=-1; ready=false; } }
+    if(ready && !G3.A.ready(C.shape)){ ready=false; if(this._q3!==C.shape){ this._q3=C.shape; needShape(C.shape,function(){ self._q3=null; self.step(0); }); } }
+    var target = ready?1:0, x = (o.still||this.hasAttribute('still')) ? target : (target>this.x3 ? Math.min(target,this.x3+dt/0.3) : Math.max(target,this.x3-dt/0.22));
+    if(!ready && want && this.x3>0 && G3.st===1){ x=this.x3; } // keep the last 3D frame while the next shape meshes
+    if(x!==this.x3 || x===0 || x===1) this._blend3(x);
+    if(!ready || !this._vis) return;
+    if(++this._shN>90){ this._shN=0; this._readShadow(); }
+    var hex=rgb2hex(this.col), key=[C.shape,C.material,C.eyes,C.cheeks,C.accessory,hex,this._shOp].join('|');
+    if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'plush', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, shadowOp:this._shOp}); }
+    var k=this.k, m=clamp(k.morph,0,1.15), pop=lerp(0.84,1,m);
+    this.view3.pose({ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
+      lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy });
+    // adaptive resolution: if a slow GPU can't keep up for a couple of seconds, render fewer pixels (never below 1x)
+    if(!o.still && AgentMascot.adaptive && dt>0){ this._ema=(this._ema||0.016)*0.95+dt*0.05; if(++this._emaN>150 && this._ema>0.024 && (this._dq||2)>1){ this._dq=Math.max(1,(this._dq||2)-0.25); this._emaN=0; } }
+    var r=this.getBoundingClientRect(), dpr=Math.min(this._dq||2,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+    if(!w||!h) return; if(this.cv3.width!==w||this.cv3.height!==h){ this.cv3.width=w; this.cv3.height=h; }
+    this.view3.render(this.ctx3,w,h);
+  }
+  /* a still frame on a canvas: works for blobs (SVG) and 3D animals; used for PNG, GIF and WebM export */
+  renderFrame(size, bg){
+    size=size||1024; var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d'), self=this;
+    if(bg){ ctx.fillStyle=bg; ctx.fillRect(0,0,size,size); }
+    var load=function(str){ return new Promise(function(res,rej){ var i=new Image(); i.onload=function(){ res(i); }; i.onerror=rej; i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(str); }); };
+    if(this.is3D){ var t=document.createElement('canvas'); t.width=t.height=size; this.view3.render(t.getContext('2d'),size,size); ctx.drawImage(t,0,0);
+      return load(this.toSVGString(size,null,true)).then(function(i){ ctx.drawImage(i,0,0,size,size); return cv; }); }
+    return load(this.toSVGString(size)).then(function(i){ ctx.drawImage(i,0,0,size,size); return cv; });
   }
   _renderParts(P, sc, eyeP, proj, hw, top, o){
     var k=this.k, p=this.cur, t=this.t, f=function(v){ return v.toFixed(2); }, gone=sc<0.01;
@@ -605,8 +641,10 @@ class AgentMascot extends HTMLElement {
     this.sparks.forEach(function(q){ q.t+=dt; }); this.sparks=this.sparks.filter(function(q){ return q.t<0.8; }).slice(-8); }
 
   /* ---------- export helpers ---------- */
-  toSVGString(size, bg){
+  toSVGString(size, bg, overlayOnly){
     var c=this.svg.cloneNode(true); size=size||512;
+    if(this.is3D && !overlayOnly && this.cv3){ // 3D animals are raster: embed the current frame under the vector overlays
+      var im=document.createElementNS('http://www.w3.org/2000/svg','image'); im.setAttribute('x','-160'); im.setAttribute('y','-165'); im.setAttribute('width','320'); im.setAttribute('height','320'); im.setAttribute('href',this.cv3.toDataURL('image/png')); c.insertBefore(im,c.firstChild.nextSibling); }
     c.setAttribute('width',size); c.setAttribute('height',size); c.setAttribute('xmlns','http://www.w3.org/2000/svg');
     if(bg){ var r=document.createElementNS('http://www.w3.org/2000/svg','rect'); r.setAttribute('x','-160'); r.setAttribute('y','-165'); r.setAttribute('width','320'); r.setAttribute('height','320'); r.setAttribute('fill',bg); c.insertBefore(r,c.firstChild.nextSibling); }
     return '<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(c);
@@ -615,7 +653,9 @@ class AgentMascot extends HTMLElement {
 AgentMascot.manual = false;
 AgentMascot.tick = function(dt){ live.forEach(function(m){ m.step(dt); }); };
 AgentMascot.PALETTE = PALETTE; AgentMascot.STATES = STATES; AgentMascot.MATERIALS = MATERIALS; AgentMascot.SHAPES = SHAPES; AgentMascot.ALIASES = ALIAS;
-AgentMascot.ANIMALS = ANIMALS; AgentMascot.FABRICS = FABRICS; AgentMascot.SERIES = SERIES;
+AgentMascot.THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js'; AgentMascot.no3D = false; AgentMascot.adaptive = true;
+AgentMascot.supports3D = function(){ return !AgentMascot.no3D && G3.st!==-1 && hasGL2(); };
+AgentMascot.ANIMALS = ANIMALS; AgentMascot.ACCESSORIES = ACCESSORIES; AgentMascot.FABRICS = FABRICS; AgentMascot.SERIES = SERIES;
 AgentMascot.seriesOf = function(shape){ shape=ALIAS[shape]||shape; return ANIMALS.indexOf(shape)>=0?'animals':'blobs'; };
 window.AgentMascot = AgentMascot;
 customElements.define('agent-mascot', AgentMascot);

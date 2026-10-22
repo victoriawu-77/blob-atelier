@@ -115,6 +115,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .ghost:hover{background:#ECECEF}
 .ex{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .ex .btn{padding:9px 0}
+.ex .btn.off{opacity:.38;cursor:not-allowed}
+.sec[hidden]{display:none}
 .embed{width:100%;margin-top:8px}
 .api{font:11.5px/1.5 ui-monospace,Menlo,monospace;color:var(--mute);margin-top:auto;padding-top:6px}
 .toast{position:fixed;left:calc(50% - 180px);top:24px;transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;transition:all .35s var(--ease);pointer-events:none;z-index:9}
@@ -309,8 +311,9 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
     <section class="sec"><h3>Color</h3><div class="sw" id="colors"></div></section>
     <section class="sec"><h3>Eyes</h3><div class="row"><div class="seg" id="eyes"><button data-v="dot">Dot</button><button data-v="capsule">Capsule</button></div>
       <label class="toggle" id="cheeks"><i></i>Blush</label></div></section>
+    <section class="sec" id="accSec" hidden><h3>Accessory</h3><div class="seg" id="acc"><button data-v="none">None</button><button data-v="beret">Beret</button><button data-v="glasses">Glasses</button><button data-v="sunglasses">Shades</button></div></section>
     <section class="sec"><h3>Export</h3>
-      <div class="ex"><button class="btn ghost" data-x="svg">SVG</button><button class="btn ghost" data-x="png">PNG</button><button class="btn ghost" data-x="gif">GIF</button><button class="btn ghost" data-x="webm">WebM</button></div>
+      <div class="ex"><button class="btn ghost" data-x="svg" id="xSvg">SVG</button><button class="btn ghost" data-x="png">PNG</button><button class="btn ghost" data-x="gif">GIF</button><button class="btn ghost" data-x="webm">WebM</button></div>
       <button class="btn ghost embed" id="embedBtn" aria-haspopup="dialog">&lt;/&gt; Embed as web component</button>
     </section>
     <div class="api">mascot.setState('thinking')</div>
@@ -318,7 +321,7 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
 </div>
 <div class="mb" id="embedModal" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="embedTitle">
-    <div class="mh"><agent-mascot id="embedPrev" seed="5"></agent-mascot><div><h2 id="embedTitle">Embed your mascot</h2><p>A self-contained &lt;agent-mascot&gt; that works in any page.</p></div></div>
+    <div class="mh"><agent-mascot id="embedPrev" seed="5" still></agent-mascot><div><h2 id="embedTitle">Embed your mascot</h2><p>A self-contained &lt;agent-mascot&gt; that works in any page.</p></div></div>
     <button class="mx" id="embedClose" aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg></button>
     <div class="tabs" role="tablist"><button role="tab" data-t="single" class="on" aria-selected="true">Single snippet</button><button role="tab" data-t="file" aria-selected="false">Script file</button></div>
     <div class="cb"><pre id="snipCode"></pre><button class="cp" data-copy="snip">Copy</button><div class="note" id="snipNote" hidden>Or load it straight from <a href="agent-mascot.js" target="_blank" rel="noopener">victoriawu-77.github.io/blob-atelier/agent-mascot.js</a></div></div>
@@ -334,21 +337,22 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
 (function(){
 var AM=window.AgentMascot, stage=document.getElementById('stage'); window.mascot=stage;
 var BG='#F4F3F0', $=function(id){ return document.getElementById(id); };
-var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',felt:'Felt',plush:'Plush',knit:'Knit'};
+var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',plush:'Plush',felt:'Felt',fluffy:'Fluffy'};
 var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine','cocoa','ink'];
 var SER=AM.SERIES;
-var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,state:'idle'};
+var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',state:'idle'};
 // each series remembers its own look, so switching back and forth is lossless
-var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'plush',color:'milk'} };
+var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'plush',color:'sky'} };
 function seriesOf(shape){ return AM.seriesOf(shape); }
 function fixSeries(){ state.series=seriesOf(state.shape); var S=SER[state.series]; if(S.materials.indexOf(state.material)<0) state.material=MEM[state.series].material; }
 // hash
-function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
+function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(k==='acc') k='accessory'; if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
+  if(AM.ACCESSORIES.indexOf(state.accessory)<0) state.accessory='none';
   if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; if(AM.ALIASES[state.material]) state.material=AM.ALIASES[state.material];
   if(SER.blobs.shapes.indexOf(state.shape)<0 && SER.animals.shapes.indexOf(state.shape)<0) state.shape = want ? MEM[want].shape : 'kitty';
   if(want && seriesOf(state.shape)!==want) state.shape=MEM[want].shape;
   fixSeries(); }
-function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
+function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.series==='animals'&&state.accessory!=='none'?'&acc='+state.accessory:'')+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
 // build UI
 var built=null;
 function buildTiles(){
@@ -360,6 +364,7 @@ function buildTiles(){
 COLORS.forEach(function(c){ var b=document.createElement('button'); b.dataset.v=c; b.title=c; b.style.background=AM.PALETTE[c]; b.onclick=function(){ set({color:c}); }; $('colors').appendChild(b); });
 AM.STATES.forEach(function(s){ var b=document.createElement('button'); b.dataset.v=s; b.textContent=s; b.onclick=function(){ set({state:s}); }; $('states').appendChild(b); });
 Array.prototype.forEach.call($('eyes').children,function(b){ b.onclick=function(){ set({eyes:b.dataset.v}); }; });
+Array.prototype.forEach.call($('acc').children,function(b){ b.onclick=function(){ set({accessory:b.dataset.v}); stage.poke(); }; });
 $('cheeks').onclick=function(){ set({cheeks:!state.cheeks}); };
 Array.prototype.forEach.call($('series').querySelectorAll('button'),function(b){ b.onclick=function(){ switchSeries(b.dataset.v); };
   b.onkeydown=function(e){ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); var v=state.series==='blobs'?'animals':'blobs'; switchSeries(v); $('series').querySelector('[data-v='+v+']').focus(); } }; });
@@ -369,18 +374,20 @@ function markSeries(){ var box=$('series'), pill=box.querySelector('.pill');
     if(on){ pill.style.width=b.offsetWidth+'px'; pill.style.transform='translateX('+b.offsetLeft+'px)'; } }); }
 window.addEventListener('resize',markSeries);
 function mark(id,v){ Array.prototype.forEach.call($(id).children,function(b){ b.classList.toggle('on',b.dataset.v===v); }); }
-function sync(){
+function syncSvgBtn(){ var b=$('xSvg'), a=state.series==='animals' && AM.supports3D(); b.classList.toggle('off',a); b.title=a?'Animals are rendered in 3D (WebGL), so SVG export is off. Use PNG, GIF or WebM.':'Vector SVG'; b.setAttribute('aria-disabled',a?'true':'false'); }
+function sync(){ syncSvgBtn();
   buildTiles(); markSeries();
-  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes);
+  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes); mark('acc',state.accessory); $('accSec').hidden=state.series!=='animals';
   $('cheeks').classList.toggle('on',state.cheeks);
   document.querySelectorAll('#shapes agent-mascot').forEach(function(m){ m.setConfig({color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks}); });
   document.querySelectorAll('#materials agent-mascot').forEach(function(m){ m.setConfig({color:state.color,shape:state.shape,eyes:state.eyes,cheeks:state.cheeks}); });
   if(modalOpen) renderEmbed();
 }
+function stageAcc(){ return state.series==='animals'?state.accessory:'none'; }
 function set(p){ for(var k in p) state[k]=p[k];
   if(p.shape){ var ns=seriesOf(state.shape); if(ns!==state.series){ state.series=ns; if(!p.material && SER[ns].materials.indexOf(state.material)<0) state.material=MEM[ns].material; } }
   MEM[state.series]={shape:state.shape, material:state.material, color:state.color};
-  stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,state:state.state}); sync(); writeHash(); }
+  stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),state:state.state}); sync(); writeHash(); }
 stage.addEventListener('change',function(e){ var c=e.detail; if(c.state!==state.state){ state.state=c.state; mark('states',state.state); writeHash(); } });
 // taste
 var TASTE={ matte:COLORS, soft:COLORS, jelly:['peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine'], glass:['sky','lilac','mint','bubblegum','peach','butter'],
@@ -389,15 +396,16 @@ var CURATED=[['mochi','peach','jelly','dot'],['bean','lilac','velvet','capsule']
 // animals: colours that read as the animal first, with a few playful pastels
 var FUR={ bunny:['milk','milk','bubblegum','lilac','sky','peach','butter'], cat:['tangerine','milk','ink','cocoa','butter','lilac','peach'], dog:['butter','cocoa','milk','peach','tangerine'],
   frog:['matcha','matcha','mint','sky','butter'], hamster:['peach','tangerine','butter','milk','cocoa'], bear:['cocoa','cocoa','butter','peach','milk','lilac'], panda:['milk','milk','bubblegum','mint'], chick:['butter','butter','peach','milk','tangerine'] };
-var CRITTERS=[['bunny','milk','plush'],['cat','tangerine','felt'],['dog','butter','plush'],['frog','matcha','felt'],['hamster','peach','plush'],['bear','cocoa','knit'],['panda','milk','plush'],['chick','butter','felt'],['bunny','bubblegum','knit'],['cat','ink','plush'],['bear','butter','felt'],['frog','mint','knit']];
+var CRITTERS=[['bunny','milk','plush'],['cat','tangerine','felt'],['dog','butter','plush'],['frog','matcha','felt'],['hamster','peach','plush'],['bear','cocoa','fluffy'],['panda','milk','plush'],['chick','butter','felt'],['bunny','bubblegum','knit'],['cat','ink','plush'],['bear','butter','felt'],['frog','mint','knit']];
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function randomize(){
   var c, an=state.series==='animals';
   for(var tries=0;tries<20;tries++){
     if(an){
       if(Math.random()<0.3){ var r=pick(CRITTERS); c={shape:r[0],color:r[1],material:r[2]}; }
-      else { c={shape:pick(SER.animals.shapes),material:pick(['plush','plush','felt','felt','knit'])}; c.color=pick(FUR[c.shape]); }
+      else { c={shape:pick(SER.animals.shapes),material:pick(['plush','plush','plush','felt','felt','fluffy'])}; c.color=pick(FUR[c.shape]); }
       c.eyes = Math.random()<0.12 ? 'capsule':'dot';
+      c.accessory = Math.random()<0.7 ? 'none' : pick(['beret','glasses','glasses','sunglasses']);
     } else {
       if(Math.random()<0.3){ var q=pick(CURATED); c={shape:q[0],color:q[1],material:q[2],eyes:q[3]}; }
       else { var m=pick(['jelly','jelly','soft','clay','velvet','glass','matte','soft']); c={material:m,color:pick(TASTE[m]),shape:pick(SER.blobs.shapes)};
@@ -435,9 +443,9 @@ function svgImg(str){ return new Promise(function(res,rej){ var i=new Image(); i
 function toBlob(cv,type,q){ return new Promise(function(r){ cv.toBlob(r,type,q); }); }
 var EX={
   svg: async function(){ return new Blob([stage.toSVGString(1024)],{type:'image/svg+xml'}); },
-  png: async function(size){ size=size||1024; var img=await svgImg(stage.toSVGString(size)); var cv=document.createElement('canvas'); cv.width=cv.height=size; cv.getContext('2d').drawImage(img,0,0,size,size); return toBlob(cv,'image/png'); },
+  png: async function(size){ return toBlob(await stage.renderFrame(size||1024),'image/png'); },
   frames: async function(fps,secs,size,each){ var was=AM.manual; AM.manual=true; var n=Math.round(fps*secs);
-    try{ for(var i=0;i<n;i++){ stage.step(1/fps); var img=await svgImg(stage.toSVGString(size,BG)); await each(img,i,n); } } finally { AM.manual=was; } },
+    try{ for(var i=0;i<n;i++){ stage.step(1/fps); var img=await stage.renderFrame(size); await each(img,i,n); } } finally { AM.manual=was; } },
   gif: async function(opts){ opts=opts||{}; var size=opts.size||480, fps=opts.fps||25, secs=opts.secs||3.2;
     var G=await import('https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js'); var enc=G.GIFEncoder(); var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d',{willReadFrequently:true});
     await EX.frames(fps,secs,size,function(img,i,n){ ctx.fillStyle=BG; ctx.fillRect(0,0,size,size); ctx.drawImage(img,0,0,size,size); var d=ctx.getImageData(0,0,size,size).data; var pal=G.quantize(d,256); var idx=G.applyPalette(d,pal); enc.writeFrame(idx,size,size,{palette:pal,delay:Math.round(1000/fps)}); if(opts.progress) opts.progress(i/n); });
@@ -452,7 +460,7 @@ var EX={
     rec.stop(); await done; return new Blob(chunks,{type:'video/webm'}); }
 };
 window.__exports=EX;
-document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async function(){ var x=b.dataset.x; b.disabled=true; try{
+document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async function(){ var x=b.dataset.x; if(b.classList.contains('off')){ toast('Animals are 3D, so SVG export is off. Try PNG, GIF or WebM.'); return; } b.disabled=true; try{
   if(x==='svg') download(await EX.svg(),fname('svg'));
   if(x==='png') download(await EX.png(),fname('png'));
   if(x==='gif'){ toast('Rendering GIF…',0); download(await EX.gif({progress:function(p){ toast('Rendering GIF… '+Math.round(p*100)+'%',0); }}),fname('gif')); }
@@ -460,7 +468,7 @@ document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async funct
   toast('Exported '+x.toUpperCase()); } catch(err){ console.warn(err); toast('Export failed: '+(err&&err.message||err)); } b.disabled=false; }; });
 // embed
 var SRC=$('agent-mascot-src').textContent.trim(), SRC_KB=(new Blob([SRC]).size/1024).toFixed(1), HOSTED='https://victoriawu-77.github.io/blob-atelier/agent-mascot.js';
-function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false'],['state',c.state]]; }
+function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false']].concat(stageAcc()!=='none'?[['accessory',stageAcc()]]:[]).concat([['state',c.state]]); }
 function tag(){ return '<agent-mascot '+attrs().map(function(a){ return a[0]+'="'+a[1]+'"'; }).join(' ')+'></agent-mascot>'; }
 function standalone(){ return '<script>\n'+SRC+'\n<\/script>\n'+tag(); }
 function scriptTag(){ return '<script src="agent-mascot.js"><\/script>\n'+tag(); }
@@ -477,12 +485,12 @@ function renderEmbed(){
     ? sp('t','<script>')+sp('c','/* agent-mascot v1 · '+SRC_KB+' KB, no dependencies · full source is included when you copy */')+sp('t','<\/script>')+'\n'+hTag()
     : sp('t','<script')+' '+sp('a','src')+'='+sp('s','"agent-mascot.js"')+sp('t','><\/script>')+'\n'+hTag();
   $('snipNote').hidden = tab!=='file';
-  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,state:state.state});
+  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),state:state.state});
   document.querySelectorAll('.tabs button').forEach(function(b){ var on=b.dataset.t===tab; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false'); });
 }
 $('apiCode').innerHTML=hJS(API); $('jsMeta').textContent=SRC_KB+' KB · works offline, no build step';
-function openEmbed(){ modalOpen=true; lastFocus=document.activeElement; renderEmbed(); var mb=$('embedModal'); mb.classList.add('open'); mb.setAttribute('aria-hidden','false'); document.body.classList.add('lock'); setTimeout(function(){ $('embedClose').focus({preventScroll:true}); },30); }
-function closeEmbed(){ if(!modalOpen) return; modalOpen=false; var mb=$('embedModal'); mb.classList.remove('open'); mb.setAttribute('aria-hidden','true'); document.body.classList.remove('lock'); if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+function openEmbed(){ modalOpen=true; $('embedPrev').removeAttribute('still'); lastFocus=document.activeElement; renderEmbed(); var mb=$('embedModal'); mb.classList.add('open'); mb.setAttribute('aria-hidden','false'); document.body.classList.add('lock'); setTimeout(function(){ $('embedClose').focus({preventScroll:true}); },30); }
+function closeEmbed(){ if(!modalOpen) return; modalOpen=false; setTimeout(function(){ if(!modalOpen) $('embedPrev').setAttribute('still',''); },400); var mb=$('embedModal'); mb.classList.remove('open'); mb.setAttribute('aria-hidden','true'); document.body.classList.remove('lock'); if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
 window.__embed.open=openEmbed; window.__embed.close=closeEmbed;
 $('embedBtn').onclick=openEmbed; $('embedClose').onclick=closeEmbed;
 $('embedModal').addEventListener('click',function(e){ if(e.target===this) closeEmbed(); });
@@ -493,10 +501,10 @@ document.querySelectorAll('.cp').forEach(function(b){ var tm; b.onclick=function
   copyText(txt).then(function(){ b.textContent='Copied'; b.classList.add('ok'); clearTimeout(tm); tm=setTimeout(function(){ b.textContent='Copy'; b.classList.remove('ok'); },1400); }); }; });
 $('dlJs').onclick=function(){ download(new Blob([SRC],{type:'text/javascript'}),'agent-mascot.js'); };
 // boot
-readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(state); sync(); writeHash();
+readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc()})); sync(); writeHash();
 requestAnimationFrame(function(){ markSeries(); requestAnimationFrame(function(){ $('series').classList.remove('init'); }); });
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(markSeries);
-window.addEventListener('hashchange',function(){ readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(state); sync(); writeHash(); });
+window.addEventListener('hashchange',function(){ readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc()})); sync(); writeHash(); });
 })();
 </script>
 </body>

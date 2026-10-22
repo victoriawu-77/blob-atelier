@@ -15,13 +15,13 @@
 
 ---
 
-Pick a shape, a finish and a color, and you get a mouthless little blob that breathes, blinks, follows your cursor and squishes when you poke it. Then drop it into your agent's UI with one tag. It's vanilla JS and inline SVG, with no build step and no dependencies.
+Pick a shape, a finish and a color, and you get a mouthless little blob that breathes, blinks, follows your cursor and squishes when you poke it. Then drop it into your agent's UI with one tag. It's vanilla JS and inline SVG, with no build step and no dependencies. The Animals series is rendered in real 3D with [three.js](https://threejs.org), which loads from a CDN only when an animal is on screen.
 
 ## Features
 
 - **Two series**, switched from the tab at the top:
   - **Blobs**: 8 shapes that all morph smoothly into each other (mochi, bean, pebble, squircle, pill, drop, kitty, cloud) and 6 finishes (matte, soft, jelly, frosted glass, clay, velvet)
-  - **Animals**: 8 chubby critters (bunny, cat, dog, frog, hamster, bear, panda, chick) in 3 tactile fabric finishes: needle **felt**, fuzzy **plush** and chunky **knit**. Ears flop and twitch, snouts and eye patches turn with the gaze
+  - **Animals**: 8 chunky 3D plush toys (bunny, cat, dog, frog, hamster, bear, panda, chick) with glossy bead eyes, in 3 fabric finishes: velvety **plush**, matte **felt** and long-pile **fluffy**. Optional accessories: a felt **beret**, round **glasses** or **sunglasses**. Ears flop and twitch, and the whole toy turns toward your cursor
 - **11 colors**, dot or capsule eyes, and optional blush
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
 - **8 agent states** you can switch from code (see below)
@@ -47,7 +47,8 @@ mascot.setState('thinking');          // switch state
 mascot.setConfig({ shape: 'cloud', color: '#9CCBFF', material: 'glass' });
 mascot.poke();                        // a little squish
 mascot.lookAt(0.5, -0.3);             // hold the gaze (x, y in -1..1); lookAt(null) to release
-mascot.toSVGString(512);              // still frame as an SVG string
+mascot.toSVGString(512);              // still frame as an SVG string (3D animals embed a PNG frame)
+mascot.renderFrame(1024).then(canvas => …);   // still frame on a canvas, works for both series
 mascot.addEventListener('poke', () => mascot.setState('happy'));   // fired on click or poke()
 mascot.addEventListener('change', e => console.log(e.detail));
 ```
@@ -55,13 +56,23 @@ mascot.addEventListener('change', e => console.log(e.detail));
 | Attribute  | Values |
 |------------|--------|
 | `shape`    | Blobs: `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias)<br>Animals: `bunny` `cat` `dog` `frog` `hamster` `bear` `panda` `chick` |
-| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `felt` `plush` `knit` (any finish works on any shape) |
+| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `plush` `felt` `fluffy` (`knit` and `wool` map to `felt`, `fur` to `fluffy`) |
 | `color`    | `milk` `peach` `butter` `matcha` `mint` `sky` `lilac` `bubblegum` `tangerine` `cocoa` `ink`, or any hex |
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |
+| `accessory` | `none` `beret` `glasses` `sunglasses` (3D animals only) |
 | `state`    | see below |
 
-In the app, **Embed as web component** opens a dialog with your current design: **Single snippet** copies a fully self-contained `<script>` with the component inlined, **Script file** gives the `<script src>` version, and you can download `agent-mascot.js` directly.
+### How the 3D animals work
+
+Each animal is a signed distance field built from smooth-unioned ellipsoids and round cones, meshed once in the browser (surface nets, a few dozen ms per shape) and cut flat where it sits on the floor. The fur is shell texturing: 9 to 40 instanced layers of the body with a `MeshPhysicalMaterial` (sheen for the velvet glint at grazing angles), where each layer keeps only the pixels inside procedural strands. Lighting is a small PMREM studio environment plus a key, rim and fill light, neutral tone mapping, a soft VSM shadow and a contact shadow on a transparent floor. The badges, sparkles, rings and thought dots stay as crisp SVG on top.
+
+- **Lazy loading**: `agent-mascot.js` stays a single dependency-free file. The first time an animal is shown it runs `import()` on a pinned three.js build (`three@0.170.0` from jsDelivr). Blobs never load it. To self-host, set `AgentMascot.THREE_URL = '/vendor/three.module.min.js'` before the first animal appears.
+- **Fallback**: without WebGL2 (or with `AgentMascot.no3D = true`) the animals draw with the SVG fabric filters instead, and that SVG version is also what you see for the moment while three.js downloads.
+- **Performance**: all mascots on a page share one WebGL context. Pixel ratio is capped at 2 and steps down by itself if a slow GPU can't keep up (`AgentMascot.adaptive = false` turns that off). Rendering pauses while a mascot is off screen or the tab is hidden.
+- **Export**: PNG, GIF and WebM work for animals. SVG export is turned off for them in the app, since a 3D toy isn't vector art.
+
+The SVG finishes for Blobs use filters (`feTurbulence`, `feDisplacementMap`, `feDiffuseLighting`) and stay crisp at any size. `AgentMascot.SERIES` lists the shapes and finishes of each series.
 
 The fabric finishes are drawn with SVG filters (`feTurbulence` fibres, `feDisplacementMap` fuzz and `feDiffuseLighting` for a felted, tufted surface), so they stay crisp at any size and survive SVG, PNG, GIF and WebM export. `AgentMascot.SERIES` lists the shapes and finishes of each series.
 
@@ -90,7 +101,7 @@ Don't write code? Open the [Happycapy remix link](https://happycapy.ai/share/fil
 node src/build.js
 ```
 
-There's nothing to install. Open `index.html` in a browser. The GIF encoder ([gifenc](https://github.com/mattdesl/gifenc)) loads from a CDN only when you export a GIF.
+There's nothing to install. Open `index.html` in a browser. The GIF encoder ([gifenc](https://github.com/mattdesl/gifenc)) loads from a CDN only when you export a GIF, and three.js only when you open an animal. The 3D animals live in `src/animals3d.js`, which the build inlines into the engine.
 
 ---
 
