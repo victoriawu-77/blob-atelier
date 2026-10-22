@@ -348,17 +348,22 @@ var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','t
 var SER=AM.SERIES;
 var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',accColor:'ink',state:'idle'};
 // each series remembers its own look, so switching back and forth is lossless
-var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'fluffy',color:'sky'} };
+var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'fluffy',color:'matcha'} };
+// the first time Animals opens (no animal params in the link, not visited yet this visit) it shows this look;
+// after that the user's own choices win, and links with explicit params open exactly as written
+var ANIMAL_FIRST={shape:'bunny',material:'fluffy',color:'matcha',eyes:'dot',cheeks:true,accessory:'glasses',accColor:'blush'}, animalsSeen=false;
+var ANIMAL_KEYS=['shape','material','color','eyes','cheeks','acc','accessory','accColor'];
 function seriesOf(shape){ return AM.seriesOf(shape); }
 function fixSeries(){ state.series=seriesOf(state.shape); var S=SER[state.series]; if(S.materials.indexOf(state.material)<0) state.material=MEM[state.series].material; }
 // hash
-function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(k==='acc') k='accessory'; if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
+function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null, given=false; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(ANIMAL_KEYS.indexOf(k)>=0) given=true; if(k==='acc') k='accessory'; if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
   if(AM.ACCESSORIES.indexOf(state.accessory)<0) state.accessory='none';
   if(!AM.ACC_COLORS[state.accColor]) state.accColor='ink';
   if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; if(AM.ALIASES[state.material]) state.material=AM.ALIASES[state.material];
   if(SER.blobs.shapes.indexOf(state.shape)<0 && SER.animals.shapes.indexOf(state.shape)<0) state.shape = want ? MEM[want].shape : 'kitty';
   if(want && seriesOf(state.shape)!==want) state.shape=MEM[want].shape;
-  fixSeries(); }
+  fixSeries();
+  if(state.series==='animals'){ if(!given && !animalsSeen) Object.assign(state,ANIMAL_FIRST); animalsSeen=true; } }
 function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.series==='animals'&&state.accessory!=='none'?'&acc='+state.accessory+(state.accColor!=='ink'?'&accColor='+state.accColor:''):'')+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
 // build UI
 var built=null;
@@ -376,7 +381,7 @@ Array.prototype.forEach.call($('acc').children,function(b){ b.onclick=function()
 $('cheeks').onclick=function(){ set({cheeks:!state.cheeks}); };
 Array.prototype.forEach.call($('series').querySelectorAll('button'),function(b){ b.onclick=function(){ switchSeries(b.dataset.v); };
   b.onkeydown=function(e){ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); var v=state.series==='blobs'?'animals':'blobs'; switchSeries(v); $('series').querySelector('[data-v='+v+']').focus(); } }; });
-function switchSeries(v){ if(!SER[v] || v===state.series) return; var m=MEM[v]; set({shape:m.shape, material:m.material, color:m.color}); stage.poke(); }
+function switchSeries(v){ if(!SER[v] || v===state.series) return; var m=MEM[v]; set(v==='animals' && !animalsSeen ? Object.assign({},ANIMAL_FIRST) : {shape:m.shape, material:m.material, color:m.color}); stage.poke(); }
 function markSeries(){ var box=$('series'), pill=box.querySelector('.pill');
   Array.prototype.forEach.call(box.querySelectorAll('button'),function(b){ var on=b.dataset.v===state.series; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false'); b.tabIndex=on?0:-1;
     if(on){ pill.style.width=b.offsetWidth+'px'; pill.style.transform='translateX('+b.offsetLeft+'px)'; } }); }
@@ -395,7 +400,7 @@ function stageAcc(){ return state.series==='animals'?state.accessory:'none'; }
 function stageAccColor(){ return stageAcc()!=='none'?state.accColor:'ink'; }
 function set(p){ for(var k in p) state[k]=p[k];
   if(p.shape){ var ns=seriesOf(state.shape); if(ns!==state.series){ state.series=ns; if(!p.material && SER[ns].materials.indexOf(state.material)<0) state.material=MEM[ns].material; } }
-  MEM[state.series]={shape:state.shape, material:state.material, color:state.color};
+  MEM[state.series]={shape:state.shape, material:state.material, color:state.color}; if(state.series==='animals') animalsSeen=true;
   stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),accColor:stageAccColor(),state:state.state}); sync(); writeHash(); }
 stage.addEventListener('change',function(e){ var c=e.detail; if(c.state!==state.state){ state.state=c.state; mark('states',state.state); writeHash(); } });
 // taste
