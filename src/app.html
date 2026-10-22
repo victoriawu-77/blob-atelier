@@ -342,7 +342,7 @@ var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','t
 var SER=AM.SERIES;
 var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',state:'idle'};
 // each series remembers its own look, so switching back and forth is lossless
-var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'plush',color:'sky'} };
+var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'fluffy',color:'sky'} };
 function seriesOf(shape){ return AM.seriesOf(shape); }
 function fixSeries(){ state.series=seriesOf(state.shape); var S=SER[state.series]; if(S.materials.indexOf(state.material)<0) state.material=MEM[state.series].material; }
 // hash
@@ -403,7 +403,7 @@ function randomize(){
   for(var tries=0;tries<20;tries++){
     if(an){
       if(Math.random()<0.3){ var r=pick(CRITTERS); c={shape:r[0],color:r[1],material:r[2]}; }
-      else { c={shape:pick(SER.animals.shapes),material:pick(['plush','plush','plush','felt','felt','fluffy'])}; c.color=pick(FUR[c.shape]); }
+      else { c={shape:pick(SER.animals.shapes),material:pick(['fluffy','fluffy','plush','plush','felt'])}; c.color=pick(FUR[c.shape]); }
       c.eyes = Math.random()<0.12 ? 'capsule':'dot';
       c.accessory = Math.random()<0.7 ? 'none' : pick(['beret','glasses','glasses','sunglasses']);
     } else {

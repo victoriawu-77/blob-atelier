@@ -21,7 +21,7 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 
 - **Two series**, switched from the tab at the top:
   - **Blobs**: 8 shapes that all morph smoothly into each other (mochi, bean, pebble, squircle, pill, drop, kitty, cloud) and 6 finishes (matte, soft, jelly, frosted glass, clay, velvet)
-  - **Animals**: 8 chunky 3D plush toys (bunny, cat, dog, frog, hamster, bear, panda, chick) with glossy bead eyes, in 3 fabric finishes: velvety **plush**, matte **felt** and long-pile **fluffy**. Optional accessories: a felt **beret**, round **glasses** or **sunglasses**. Ears flop and twitch, and the whole toy turns toward your cursor
+  - **Animals**: 8 chunky 3D plush toys (bunny, cat, dog, frog, hamster, bear, panda, chick) with glossy bead eyes, in 3 fabric finishes: long-pile **fluffy** (the default), velvety **plush** and matte **felt**. Optional accessories: a felt **beret**, round **glasses** or **sunglasses**. Ears flop and twitch, and the whole toy turns toward your cursor
 - **11 colors**, dot or capsule eyes, and optional blush
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
 - **8 agent states** you can switch from code (see below)
@@ -37,7 +37,7 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 <agent-mascot shape="mochi" color="peach" material="jelly" eyes="dot" state="idle"
               style="width:240px;height:240px"></agent-mascot>
 
-<agent-mascot shape="bunny" color="milk" material="plush" style="width:240px;height:240px"></agent-mascot>
+<agent-mascot shape="bunny" color="sky" material="fluffy" style="width:240px;height:240px"></agent-mascot>
 ```
 
 ```js
@@ -56,7 +56,7 @@ mascot.addEventListener('change', e => console.log(e.detail));
 | Attribute  | Values |
 |------------|--------|
 | `shape`    | Blobs: `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias)<br>Animals: `bunny` `cat` `dog` `frog` `hamster` `bear` `panda` `chick` |
-| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `plush` `felt` `fluffy` (`knit` and `wool` map to `felt`, `fur` to `fluffy`) |
+| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `fluffy` (default) `plush` `felt` (`knit` and `wool` map to `felt`, `fur` to `fluffy`) |
 | `color`    | `milk` `peach` `butter` `matcha` `mint` `sky` `lilac` `bubblegum` `tangerine` `cocoa` `ink`, or any hex |
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |
@@ -65,7 +65,7 @@ mascot.addEventListener('change', e => console.log(e.detail));
 
 ### How the 3D animals work
 
-Each animal is a signed distance field built from smooth-unioned ellipsoids and round cones, meshed once in the browser (surface nets, a few dozen ms per shape) and cut flat where it sits on the floor. The fur is shell texturing: 9 to 40 instanced layers of the body with a `MeshPhysicalMaterial` (sheen for the velvet glint at grazing angles), where each layer keeps only the pixels inside procedural strands. Lighting is a small PMREM studio environment plus a key, rim and fill light, neutral tone mapping, a soft VSM shadow and a contact shadow on a transparent floor. The badges, sparkles, rings and thought dots stay as crisp SVG on top.
+Each animal is a signed distance field built from smooth-unioned ellipsoids and round cones, meshed once in the browser (surface nets, a few dozen ms per shape) and cut flat where it sits on the floor. The fur is shell texturing: 9 to 40 instanced layers of the body with a `MeshPhysicalMaterial` (sheen for the velvet glint at grazing angles), where each layer keeps only the pixels inside procedural strands. Lighting is a small PMREM studio environment plus a key, rim and fill light, neutral tone mapping, a soft VSM shadow and a contact shadow on a transparent floor. Eyes, nose and the happy and error eyes are placed by raycasting the actual body surface (the right eye is mirrored for perfect symmetry), lifted by the finish's pile height so they sit on top of the fur, and the fur is trimmed around them so shells never draw over an eye. The badges, sparkles, rings and thought dots stay as crisp SVG on top.
 
 - **Lazy loading**: `agent-mascot.js` stays a single dependency-free file. The first time an animal is shown it runs `import()` on a pinned three.js build (`three@0.170.0` from jsDelivr). Blobs never load it. To self-host, set `AgentMascot.THREE_URL = '/vendor/three.module.min.js'` before the first animal appears.
 - **Fallback**: without WebGL2 (or with `AgentMascot.no3D = true`) the animals draw with the SVG fabric filters instead, and that SVG version is also what you see for the moment while three.js downloads.
@@ -101,7 +101,7 @@ Don't write code? Open the [Happycapy remix link](https://happycapy.ai/share/fil
 node src/build.js
 ```
 
-There's nothing to install. Open `index.html` in a browser. The GIF encoder ([gifenc](https://github.com/mattdesl/gifenc)) loads from a CDN only when you export a GIF, and three.js only when you open an animal. The 3D animals live in `src/animals3d.js`, which the build inlines into the engine.
+There's nothing to install. Open `index.html` in a browser. `test/face-rebuild.test.js` is an optional headless-Chrome check (needs `playwright-core`) that switching shape, finish or eye type while the toy is turned and squashed builds the face exactly like a fresh load. The GIF encoder ([gifenc](https://github.com/mattdesl/gifenc)) loads from a CDN only when you export a GIF, and three.js only when you open an animal. The 3D animals live in `src/animals3d.js`, which the build inlines into the engine.
 
 ---
 

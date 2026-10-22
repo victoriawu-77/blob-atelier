@@ -9,7 +9,7 @@ var PALETTE = {
 };
 var STATES = ['idle','listening','thinking','talking','working','happy','done','error'];
 var MATERIALS = ['matte','soft','jelly','glass','clay','velvet'];
-var FABRICS = ['plush','felt','fluffy'];
+var FABRICS = ['fluffy','plush','felt'];
 var ACCESSORIES = ['none','beret','glasses','sunglasses']; // 3D animals only
 var ALL_MATERIALS = MATERIALS.concat(FABRICS);
 var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'fluffy', wool:'felt', knit:'felt', velour:'plush', fuzzy:'fluffy' };
@@ -599,7 +599,7 @@ class AgentMascot extends HTMLElement {
     if(!ready || !this._vis) return;
     if(++this._shN>90){ this._shN=0; this._readShadow(); }
     var hex=rgb2hex(this.col), key=[C.shape,C.material,C.eyes,C.cheeks,C.accessory,hex,this._shOp].join('|');
-    if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'plush', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, shadowOp:this._shOp}); }
+    if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'fluffy', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, shadowOp:this._shOp}); }
     var k=this.k, m=clamp(k.morph,0,1.15), pop=lerp(0.84,1,m);
     this.view3.pose({ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
       lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy });

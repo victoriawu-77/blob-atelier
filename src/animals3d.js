@@ -125,25 +125,27 @@ var FIN={
 function furMaterial(fin){
   var m=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:fin.rough, metalness:0, sheen:fin.sheen, sheenRoughness:fin.sheenR, sheenColor:new THREE.Color(1,1,1) });
   var U={ uLen:{value:fin.len}, uShells:{value:fin.shells}, uDens:{value:fin.dens}, uGrav:{value:fin.grav}, uRoot:{value:fin.root}, uStray:{value:fin.stray}, uLenVar:{value:fin.lenVar}, uMottle:{value:fin.mottle}, uClump:{value:fin.clump?1:0}, uRad:{value:fin.rad},
-    cLight:{value:new THREE.Color()}, cPink:{value:new THREE.Color()}, cDark:{value:new THREE.Color()}, cCheek:{value:new THREE.Color()}, uCheeks:{value:1}, uEar:{value:new THREE.Vector2()}, uEarP:{value:new V3()}, uAO:{value:1} };
+    cLight:{value:new THREE.Color()}, cPink:{value:new THREE.Color()}, cDark:{value:new THREE.Color()}, cCheek:{value:new THREE.Color()}, uCheeks:{value:1}, uEar:{value:new THREE.Vector2()}, uEarP:{value:new V3()}, uAO:{value:1},
+    uCarveK:{value:0}, uCarveC:{value:[new V3(),new V3(),new V3()]}, uCarveN:{value:[new V3(0,0,1),new V3(0,0,1),new V3(0,0,1)]}, uCarveU:{value:[new V3(0,1,0),new V3(0,1,0),new V3(0,1,0)]}, uCarveR:{value:[new THREE.Vector2(1,1),new THREE.Vector2(1,1),new THREE.Vector2(1,1)]}, uCarveA:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]} };
   m.userData.U=U;
   m.onBeforeCompile=function(sh){
     Object.assign(sh.uniforms,U);
-    sh.vertexShader = 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying float vH;\n'
+    sh.vertexShader = 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
       + 'vec3 earRot(vec3 p,float a){ float c=cos(a),s=sin(a); vec2 d=p.xy-vec2(sign(p.x)*uEarP.x,uEarP.y); return vec3(vec2(sign(p.x)*uEarP.x,uEarP.y)+vec2(d.x*c-d.y*s,d.x*s+d.y*c),p.z); }\n'
       + sh.vertexShader
       .replace('#include <beginnormal_vertex>','vec3 objectNormal = vec3( normal );\nfloat ea = earW>0.0 ? uEar.y*earW : -uEar.x*earW;\nif(abs(ea)>0.0001){ float c=cos(ea),s=sin(ea); objectNormal.xy=vec2(objectNormal.x*c-objectNormal.y*s,objectNormal.x*s+objectNormal.y*c); }')
-      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;');
-    sh.fragmentShader = 'uniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying float vH;\n'
+      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;\nvDisp=transformed;');
+    sh.fragmentShader = 'uniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nuniform float uCarveK;\nuniform vec3 uCarveC[3]; uniform vec3 uCarveN[3]; uniform vec3 uCarveU[3]; uniform vec2 uCarveR[3]; uniform vec4 uCarveA[3];\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
+      + 'float carve(){ float k=0.0; for(int i=0;i<3;i++){ if(float(i)>=uCarveK) break; vec3 d=vDisp-uCarveC[i], n=uCarveN[i], u=uCarveU[i], r=cross(u,n); if(dot(d,n)<-0.06) continue; vec2 q=vec2(dot(d,r),dot(d,u)); float e; vec4 A=uCarveA[i]; if(A.z>0.0){ q-=A.xy; float dd = q.y>=0.0 ? abs(length(q)-A.z) : min(length(q-vec2(A.z,0.0)),length(q+vec2(A.z,0.0))); e=dd/A.w; } else e=length(q/uCarveR[i]); k=max(k,1.0-smoothstep(0.92,1.3,e)); } return k; }\n'
       + 'uvec3 pcg3(uvec3 v){ v=v*1664525u+1013904223u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; v^=v>>16u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; return v; }\n'
       + 'vec3 h33(vec3 p){ return vec3(pcg3(uvec3(ivec3(floor(p))+ivec3(65536))))*(1.0/4294967295.0); }\n'
       + 'float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); float n=mix(mix(mix(h33(i).x,h33(i+vec3(1,0,0)).x,f.x),mix(h33(i+vec3(0,1,0)).x,h33(i+vec3(1,1,0)).x,f.x),f.y),mix(mix(h33(i+vec3(0,0,1)).x,h33(i+vec3(1,0,1)).x,f.x),mix(h33(i+vec3(0,1,1)).x,h33(i+vec3(1,1,1)).x,f.x),f.y),f.z); return n; }\n'
       + 'float strand(vec3 q,vec3 n,float h,out float tip){ vec3 c=floor(q); vec3 r=h33(c); vec3 d=fract(q)-0.5-(r-0.5)*0.42; d-=dot(d,n)*n; float len=1.0-uLenVar*r.z; tip=h/len; if(h>len) return 0.0; float rad=uRad*pow(max(0.0,1.0-h/len),0.55); return 1.0-smoothstep(rad*0.7,rad,length(d)); }\n'
       + sh.fragmentShader
-      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH;\nif(vH>0.0){ vec3 n=normalize(vONrm); vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; }')
-      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\ncol*=mix(uRoot,1.0,pow(clamp(vH,0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
+      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH;\nfloat cv=uCarveK>0.0?carve():0.0;\n// fur is trimmed short around the eyes so shells never cover them\nif(vH>0.0 && vH>(1.0-cv)*1.02-0.02) discard;\nif(vH>0.0){ vec3 n=normalize(vONrm); vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; }')
+      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\ncol*=mix(uRoot,1.0,pow(clamp(max(vH,cv*0.85),0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
   };
-  m.customProgramCacheKey=function(){ return 'amfur1'; };
+  m.customProgramCacheKey=function(){ return 'amfur2'; };
   return m;
 }
 /* ---------- shared renderer + environment ---------- */
@@ -179,6 +181,7 @@ function View(){
     fragmentShader:'uniform float uOp; uniform vec3 uCol; varying vec2 vUv; void main(){ vec2 p=(vUv-0.5)*2.0; float r=dot(p,p); float a=exp(-r*9.0)*0.55+exp(-r*3.2)*0.45; gl_FragColor=vec4(uCol,a*uOp); }'}));
   this.contact.rotation.x=-Math.PI/2; this.contact.position.y=0.002; sc.add(this.contact);
   this.eyeMat=new THREE.MeshPhysicalMaterial({color:0x0c0b10, roughness:0.16, clearcoat:1, clearcoatRoughness:0.06});
+  this.lightEyeMat=new THREE.MeshPhysicalMaterial({color:0xf4f1ea, roughness:0.16, clearcoat:1, clearcoatRoughness:0.06});
   this.whiteMat=new THREE.MeshPhysicalMaterial({color:0xfbfaf6, roughness:0.3, clearcoat:0.6, clearcoatRoughness:0.15});
   this.noseMat=new THREE.MeshPhysicalMaterial({color:0x1a1416, roughness:0.28, clearcoat:0.8, clearcoatRoughness:0.12});
   this.beakMat=new THREE.MeshPhysicalMaterial({color:0xff9a2e, roughness:0.45, sheen:0.4, sheenColor:new THREE.Color(1,0.8,0.5)});
@@ -195,7 +198,7 @@ View.prototype.set=function(c){
     if(S.ear) mat.userData.U.uEarP.value.set(S.ear[0],S.ear[1],S.ear[2]);
     this.contact.scale.set(D.foot*2.5,D.foot*2.1,1);
     // nose / beak
-    if(S.nose && S.nose.kind==='black'){ var pr=D.probe(0,S.nose.y); var nr=S.nose.r||0.07; var n=new THREE.Mesh(new THREE.SphereGeometry(1,32,20),this.noseMat); n.scale.set(nr*1.25,nr*0.85,nr*0.8); n.position.copy(pr.p).addScaledVector(pr.n,nr*0.25+fin.len*0.6); n.lookAt(n.position.clone().add(pr.n)); this.body.add(n); }
+    this.noseA=null; if(S.nose && S.nose.kind==='black'){ var nr=S.nose.r||0.07, NA=this._anchor(0,S.nose.y,1); NA.p.x=0; var n=new THREE.Mesh(new THREE.SphereGeometry(1,32,20),this.noseMat); var nf=this._pile()+0.03; n.scale.set(nr*1.25,nr*0.85,(nf+0.03)/2+nr*0.2); n.position.copy(NA.p).addScaledVector(NA.n,(nf-0.03)/2); n.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new V3(1,0,0),NA.u,NA.f)); this.body.add(n); this.noseA={A:NA,r:nr}; }
     if(S.beak){ var pb=D.probe(0,S.beak.y), b=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.16,24),this.beakMat); b.position.copy(pb.p).addScaledVector(pb.n,0.05+fin.len*0.6); b.quaternion.setFromUnitVectors(new V3(0,1,0),pb.n); this.body.add(b); }
   }
   if(reeyes) this._eyes(c);
@@ -203,22 +206,49 @@ View.prototype.set=function(c){
   this.cfg=Object.assign({},c);
   this._colors(c);
 };
+/* a symmetric anchor on the face: raycast the right side, mirror it for the left.
+   frame: f leans the surface normal toward the viewer so both eyes face forward the same way,
+   u is world-up made perpendicular to f (no roll), r = u x f */
+View.prototype._anchor=function(x,y,side){
+  var pr=this.D.probe(Math.abs(x),y); if(!pr) pr={p:new V3(Math.abs(x),y,0.5),n:new V3(0,0,1)};
+  var p=pr.p.clone(), n=pr.n.clone(); p.x*=side; n.x*=side;
+  var f=n.clone().add(new V3(0,0,0.7)).normalize(), u=new V3(0,1,0).addScaledVector(f,-f.y).normalize(), r=new V3().crossVectors(u,f);
+  return {p:p, n:n, f:f, u:u, r:r, q:new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(r,u,f))};
+};
+// height of the fur pile at rest (shell length, a little less where gravity bends it)
+View.prototype._pile=function(){ var f=this.fin; return f.len*(1-0.35*f.grav); };
 View.prototype._eyes=function(c){
   if(this.eyesG) this.body.remove(this.eyesG); var g=new THREE.Group(); this.eyesG=g; this.body.add(g); this.eyeL=[];
-  var S=this.S, D=this.D, fin=this.fin, self=this;
-  var cap=c.eyes==='capsule', sph=new THREE.SphereGeometry(1,40,24);
-  var arcG=new THREE.TorusGeometry(0.085,0.028,12,32,Math.PI), chevG=new THREE.CapsuleGeometry(0.026,0.085,6,12);
+  var S=this.S, D=this.D, self=this, pile=this._pile(), U=this.mat.userData.U, K=0;
+  var cap=c.eyes==='capsule', sph=new THREE.SphereGeometry(1,48,28);
+  var front=pile+0.032, back=-0.03, ez=(front-back)/2;           // bead spans from inside the body to just above the pile
+  var arcR=cap?0.075:0.085, arcT=0.026, arcG=new THREE.TorusGeometry(arcR,arcT,16,48,Math.PI), capG=new THREE.SphereGeometry(1,16,12);
+  var chevG=new THREE.CapsuleGeometry(0.028,0.075,8,16);
+  var ring=S.darkEyes && !this._darkBody;
   [-1,1].forEach(function(side){
     var e={side:side, g:new THREE.Group()}; g.add(e.g);
-    if(S.googly){ var G=S.googly, pr=D.probe(side*G.x,G.y); e.g.position.copy(pr.p).addScaledVector(pr.n,-G.r*0.35); e.g.lookAt(e.g.position.clone().add(pr.n));
+    if(S.googly){ var G=S.googly, A=self._anchor(G.x,G.y,side);
+      e.g.position.copy(A.p).addScaledVector(A.f,-G.r*0.3+pile*0.5); e.g.quaternion.copy(A.q);
       var wm=new THREE.Mesh(sph,self.whiteMat); wm.scale.setScalar(G.r); e.g.add(wm); e.white=wm;
-      var pu=new THREE.Mesh(sph,self.eyeMat); pu.scale.set(G.r*0.56,G.r*0.56,G.r*0.3); pu.position.z=G.r*0.86; e.g.add(pu); e.eye=pu; e.R=G.r; e.googly=true; }
-    else { var ex=S.eyes[0], ey=S.eyes[1], p=D.probe(side*ex,ey); e.g.position.copy(p.p).addScaledVector(p.n,fin.len*0.5); e.g.lookAt(e.g.position.clone().add(p.n));
-      var m=new THREE.Mesh(sph,self.eyeMat); if(cap) m.scale.set(0.082,0.15,0.055); else m.scale.set(0.118,0.124,0.06); e.g.add(m); e.eye=m; e.base=m.scale.clone(); }
-    var arc=new THREE.Mesh(arcG,self.eyeMat); arc.position.set(0,-0.02,S.googly?e.R*0.95:0.02); arc.visible=false; e.g.add(arc); e.arc=arc;
-    var ch=new THREE.Group(), c1=new THREE.Mesh(chevG,self.eyeMat), c2=new THREE.Mesh(chevG,self.eyeMat); c1.position.set(0,0.026,0); c1.rotation.z=-side*0.9; c2.position.set(0,-0.026,0); c2.rotation.z=side*0.9; c1.position.x=c2.position.x=-side*0.0; ch.add(c1,c2); ch.position.z=S.googly?e.R*0.95:0.02; ch.visible=false; e.g.add(ch); e.chev=ch;
+      var pu=new THREE.Mesh(sph,self.eyeMat); pu.scale.set(G.r*0.56,G.r*0.56,G.r*0.3); pu.position.z=G.r*0.86; e.g.add(pu); e.eye=pu; e.R=G.r; e.googly=true;
+      e.top=G.r*1.0; e.carve=[A,G.r*1.05,G.r*1.05]; }
+    else { var A=self._anchor(S.eyes[0],S.eyes[1],side); e.g.position.copy(A.p); e.g.quaternion.copy(A.q);
+      var rx=cap?0.082:0.118, ry=cap?0.15:0.124;
+      var m=new THREE.Mesh(sph,self.eyeMat); m.scale.set(rx,ry,ez); m.position.z=(front+back)/2; e.g.add(m); e.eye=m; e.base=m.scale.clone();
+      if(ring){ var wr=new THREE.Mesh(sph,self.whiteMat); wr.scale.set(rx*1.32,ry*1.3,ez*0.92); wr.position.z=(front+back)/2-0.012; e.g.add(wr); e.ring=wr; }
+      e.top=front; var k=ring?1.3:1.0; e.carve=[A,rx*k,ry*k]; }
+    // happy: a raised glossy arc; error: a chevron pointing outward like the SVG (< >)
+    var fm=ring?self.lightEyeMat:self.eyeMat; var arc=new THREE.Group(); arc.add(new THREE.Mesh(arcG,fm)); [-1,1].forEach(function(t){ var cp=new THREE.Mesh(capG,fm); cp.scale.setScalar(arcT); cp.position.x=t*arcR; arc.add(cp); }); arc.position.set(0,-0.035,e.top-arcT*0.35); arc.visible=false; e.g.add(arc); e.arc=arc; e.arcC=[0,arc.position.y,arcR,arcT];
+    var ch=new THREE.Group(), L=0.075+0.028*2, phi=0.62, tip=side*0.045;
+    [1,-1].forEach(function(sg){ var m=new THREE.Mesh(chevG,fm);
+      var hl=L*0.5-0.028; m.position.set(tip - side*Math.cos(phi)*hl, sg*Math.sin(phi)*hl, 0);   // arm runs from the outer tip toward the face centre
+      m.rotation.z=Math.atan2(side*Math.cos(phi), sg*Math.sin(phi)); ch.add(m); });
+    ch.position.z=e.top-0.028*0.4; ch.visible=false; e.g.add(ch); e.chev=ch;
+    var C=e.carve, A2=C[0]; U.uCarveC.value[K].copy(A2.p); U.uCarveN.value[K].copy(A2.f); U.uCarveU.value[K].copy(A2.u); U.uCarveR.value[K].set(C[1],C[2]); e.k=K; K++;
     self.eyeL.push(e);
   });
+  if(this.noseA){ var N=this.noseA; U.uCarveC.value[K].copy(N.A.p); U.uCarveN.value[K].copy(N.A.f); U.uCarveU.value[K].copy(N.A.u); U.uCarveR.value[K].set(N.r*1.45,N.r*1.15); K++; }
+  U.uCarveK.value=K;
 };
 /* accessories: a felt beret, round glasses, sunglasses */
 var ACCM=null;
@@ -245,8 +275,8 @@ View.prototype._acc=function(kind){
     g.add(b); return; }
   // glasses: two rings in front of the eyes, a bridge and short temples
   var ex, ey, er, zc;
-  if(S.googly){ ex=S.googly.x; ey=S.googly.y; er=S.googly.r*1.18; zc=D.probe(ex,ey).p.z+S.googly.r*0.75; }
-  else { ex=S.eyes[0]; ey=S.eyes[1]; er=0.17; var pr=D.probe(ex,ey); zc=pr.p.z+fin.len+0.09; }
+  if(S.googly){ ex=S.googly.x; ey=S.googly.y; er=S.googly.r*1.18; zc=D.probe(ex,ey).p.z+S.googly.r*0.75+this._pile()*0.5; }
+  else { ex=S.eyes[0]; ey=S.eyes[1]; er=0.17; var pr=D.probe(ex,ey); zc=pr.p.z+this._pile()+0.1; }
   var ring=new THREE.TorusGeometry(er,0.024,16,64);
   [-1,1].forEach(function(sd){ var m=new THREE.Mesh(ring,M.frame); m.position.set(sd*ex,ey,zc); m.castShadow=true; g.add(m);
     if(kind==='sunglasses'){ var l=new THREE.Mesh(new THREE.SphereGeometry(er*0.97,40,20),M.lens); l.scale.z=0.16; l.position.set(sd*ex,ey,zc+0.004); g.add(l); }
@@ -258,14 +288,14 @@ View.prototype._colors=function(c){
   var U=this.mat.userData.U, base=hexToColor(c.color), hsl={}; base.getHSL(hsl);
   // a touch more saturation than the 2D palette, closer to dyed plush
   var b2=new THREE.Color().setHSL(hsl.h, Math.min(1,hsl.s*1.25+0.06), hsl.l*0.93);
-  this.mat.color.copy(b2); var L=hsl.l, dark=L<0.2;
+  this.mat.color.copy(b2); var L=hsl.l, dark=L<0.2; if(this._darkBody!==dark && this.S && this.S.darkEyes){ this._darkBody=dark; this._eyes(c); } this._darkBody=dark;
   this.mat.sheenColor.copy(b2).lerp(new THREE.Color(1,1,1),0.55);
   U.cLight.value.copy(b2).lerp(new THREE.Color(1,0.98,0.94), dark?0.35:0.68);
   U.cPink.value.copy(b2).lerp(new THREE.Color(1,0.5,0.62),0.7);
   U.cDark.value.copy(this.S===SH.panda ? new THREE.Color(dark?0xe9e4dc:0x1d1b22) : new THREE.Color(b2).lerp(new THREE.Color(0x5a3626),0.38));
   U.cCheek.value.copy(b2).lerp(new THREE.Color(1,0.42,0.55),0.42);
   U.uCheeks.value=c.cheeks?1:0;
-  var em = (dark || (this.S===SH.panda && false)) ? 0xf4f1ea : 0x0c0b10; this.eyeMat.color.set(em);
+  var em = (dark && this.S!==SH.panda) ? 0xf4f1ea : 0x0c0b10; this.eyeMat.color.set(em);
   this.contact.material.uniforms.uOp.value=c.shadowOp!=null?c.shadowOp:0.5;
 };
 /* pose: sx,sy,tilt(rad),tx,ty (world), yaw,pitch, lid, eye, expr, mode, earL, earR, gx, gy */
@@ -277,9 +307,15 @@ View.prototype.pose=function(p){
     var xe=Math.max(0,Math.min(1,p.expr));
     if(e.googly){ e.eye.position.set(p.gx*e.R*0.35, -p.gy*e.R*0.3, e.R*0.86); e.eye.scale.set(e.R*0.56*p.eye, e.R*0.56*p.eye*Math.max(0.08,p.lid), e.R*0.3); e.white.scale.set(e.R,e.R*(0.7+0.3*Math.max(0.1,p.lid)),e.R); }
     else { e.eye.scale.set(e.base.x*p.eye, e.base.y*p.eye*Math.max(0.06,p.lid), e.base.z); }
-    e.eye.visible = xe<0.5; if(e.white) e.white.visible=true;
+    e.eye.visible = xe<0.5; if(e.white) e.white.visible=true; if(e.ring){ e.ring.visible = xe<0.5; e.ring.scale.y=e.base.y*1.3*p.eye*Math.max(0.06,p.lid); }
     e.arc.visible = xe>=0.5 && p.mode==='happy'; e.chev.visible = xe>=0.5 && p.mode==='chev';
     var sc=0.8+0.2*xe; e.arc.scale.setScalar(sc); e.chev.scale.setScalar(sc);
+    // fur trim follows what is showing: the bead's footprint, the arc's band, or a small patch under the chevrons
+    var cr=U.uCarveR.value[e.k], ca=U.uCarveA.value[e.k];
+    if(e.googly){ ca.set(0,0,0,0); }
+    else if(xe>=0.5 && p.mode==='happy'){ ca.set(0, e.arcC[1], e.arcC[2]*sc, e.arcC[3]*sc*1.6); }
+    else if(xe>=0.5){ ca.set(0,0,0,0); cr.set(0.075*sc,0.07*sc); }
+    else { ca.set(0,0,0,0); var bl=Math.max(0.06,p.lid)*p.eye; cr.set(e.carve[1]*p.eye, Math.max(0.02,e.carve[2]*bl)); }
   });
   var lift=Math.max(0,p.ty); this.contact.material.uniforms.uOp.value=(this.cfg.shadowOp!=null?this.cfg.shadowOp:0.5)*Math.max(0.3,1-lift*1.4);
   this.contact.position.x=p.tx*0.6;
