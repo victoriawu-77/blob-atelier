@@ -100,6 +100,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .sw{display:flex;flex-wrap:wrap;gap:10px}
 .sw button{width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:transform .2s var(--ease),box-shadow .2s}
 .sw button:hover{transform:scale(1.1)}
+.accsw{margin-top:12px}
 .sw button.on{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),0 0 0 2.5px #fff,0 0 0 4px var(--ink)}
 .row{display:flex;gap:10px;align-items:center}
 .seg{display:inline-flex;background:var(--tile);border-radius:10px;padding:3px}
@@ -311,7 +312,8 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
     <section class="sec"><h3>Color</h3><div class="sw" id="colors"></div></section>
     <section class="sec"><h3>Eyes</h3><div class="row"><div class="seg" id="eyes"><button data-v="dot">Dot</button><button data-v="capsule">Capsule</button></div>
       <label class="toggle" id="cheeks"><i></i>Blush</label></div></section>
-    <section class="sec" id="accSec" hidden><h3>Accessory</h3><div class="seg" id="acc"><button data-v="none">None</button><button data-v="beret">Beret</button><button data-v="glasses">Glasses</button><button data-v="sunglasses">Shades</button></div></section>
+    <section class="sec" id="accSec" hidden><h3>Accessory</h3><div class="seg" id="acc"><button data-v="none">None</button><button data-v="beret">Beret</button><button data-v="glasses">Glasses</button><button data-v="sunglasses">Shades</button></div>
+      <div class="sw accsw" id="accColors" hidden></div></section>
     <section class="sec"><h3>Export</h3>
       <div class="ex"><button class="btn ghost" data-x="svg" id="xSvg">SVG</button><button class="btn ghost" data-x="png">PNG</button><button class="btn ghost" data-x="gif">GIF</button><button class="btn ghost" data-x="webm">WebM</button></div>
       <button class="btn ghost embed" id="embedBtn" aria-haspopup="dialog">&lt;/&gt; Embed as web component</button>
@@ -340,7 +342,7 @@ var BG='#F4F3F0', $=function(id){ return document.getElementById(id); };
 var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',knit:'Knit',felt:'Felt',fluffy:'Fluffy'};
 var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine','cocoa','ink'];
 var SER=AM.SERIES;
-var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',state:'idle'};
+var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',accColor:'ink',state:'idle'};
 // each series remembers its own look, so switching back and forth is lossless
 var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'fluffy',color:'sky'} };
 function seriesOf(shape){ return AM.seriesOf(shape); }
@@ -348,11 +350,12 @@ function fixSeries(){ state.series=seriesOf(state.shape); var S=SER[state.series
 // hash
 function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(k==='acc') k='accessory'; if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
   if(AM.ACCESSORIES.indexOf(state.accessory)<0) state.accessory='none';
+  if(!AM.ACC_COLORS[state.accColor]) state.accColor='ink';
   if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; if(AM.ALIASES[state.material]) state.material=AM.ALIASES[state.material];
   if(SER.blobs.shapes.indexOf(state.shape)<0 && SER.animals.shapes.indexOf(state.shape)<0) state.shape = want ? MEM[want].shape : 'kitty';
   if(want && seriesOf(state.shape)!==want) state.shape=MEM[want].shape;
   fixSeries(); }
-function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.series==='animals'&&state.accessory!=='none'?'&acc='+state.accessory:'')+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
+function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.series==='animals'&&state.accessory!=='none'?'&acc='+state.accessory+(state.accColor!=='ink'?'&accColor='+state.accColor:''):'')+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
 // build UI
 var built=null;
 function buildTiles(){
@@ -364,6 +367,7 @@ function buildTiles(){
 COLORS.forEach(function(c){ var b=document.createElement('button'); b.dataset.v=c; b.title=c; b.style.background=AM.PALETTE[c]; b.onclick=function(){ set({color:c}); }; $('colors').appendChild(b); });
 AM.STATES.forEach(function(s){ var b=document.createElement('button'); b.dataset.v=s; b.textContent=s; b.onclick=function(){ set({state:s}); }; $('states').appendChild(b); });
 Array.prototype.forEach.call($('eyes').children,function(b){ b.onclick=function(){ set({eyes:b.dataset.v}); }; });
+Object.keys(AM.ACC_COLORS).forEach(function(c){ var b=document.createElement('button'); b.dataset.v=c; b.title=c==='ink'?'ink (default)':c; b.setAttribute('aria-label','Accessory colour '+c); b.style.background=AM.ACC_COLORS[c]; b.onclick=function(){ set({accColor:c}); stage.poke(); }; $('accColors').appendChild(b); });
 Array.prototype.forEach.call($('acc').children,function(b){ b.onclick=function(){ set({accessory:b.dataset.v}); stage.poke(); }; });
 $('cheeks').onclick=function(){ set({cheeks:!state.cheeks}); };
 Array.prototype.forEach.call($('series').querySelectorAll('button'),function(b){ b.onclick=function(){ switchSeries(b.dataset.v); };
@@ -377,17 +381,18 @@ function mark(id,v){ Array.prototype.forEach.call($(id).children,function(b){ b.
 function syncSvgBtn(){ var b=$('xSvg'), a=state.series==='animals' && AM.supports3D(); b.classList.toggle('off',a); b.title=a?'Animals are rendered in 3D (WebGL), so SVG export is off. Use PNG, GIF or WebM.':'Vector SVG'; b.setAttribute('aria-disabled',a?'true':'false'); }
 function sync(){ syncSvgBtn();
   buildTiles(); markSeries();
-  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes); mark('acc',state.accessory); $('accSec').hidden=state.series!=='animals';
+  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes); mark('acc',state.accessory); mark('accColors',state.accColor); $('accSec').hidden=state.series!=='animals'; $('accColors').hidden=state.accessory==='none';
   $('cheeks').classList.toggle('on',state.cheeks);
   document.querySelectorAll('#shapes agent-mascot').forEach(function(m){ m.setConfig({color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks}); });
   document.querySelectorAll('#materials agent-mascot').forEach(function(m){ m.setConfig({color:state.color,shape:state.shape,eyes:state.eyes,cheeks:state.cheeks}); });
   if(modalOpen) renderEmbed();
 }
 function stageAcc(){ return state.series==='animals'?state.accessory:'none'; }
+function stageAccColor(){ return stageAcc()!=='none'?state.accColor:'ink'; }
 function set(p){ for(var k in p) state[k]=p[k];
   if(p.shape){ var ns=seriesOf(state.shape); if(ns!==state.series){ state.series=ns; if(!p.material && SER[ns].materials.indexOf(state.material)<0) state.material=MEM[ns].material; } }
   MEM[state.series]={shape:state.shape, material:state.material, color:state.color};
-  stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),state:state.state}); sync(); writeHash(); }
+  stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),accColor:stageAccColor(),state:state.state}); sync(); writeHash(); }
 stage.addEventListener('change',function(e){ var c=e.detail; if(c.state!==state.state){ state.state=c.state; mark('states',state.state); writeHash(); } });
 // taste
 var TASTE={ matte:COLORS, soft:COLORS, jelly:['peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine'], glass:['sky','lilac','mint','bubblegum','peach','butter'],
@@ -406,6 +411,7 @@ function randomize(){
       else { c={shape:pick(SER.animals.shapes),material:pick(['fluffy','fluffy','knit','knit','felt'])}; c.color=pick(FUR[c.shape]); }
       c.eyes = Math.random()<0.12 ? 'capsule':'dot';
       c.accessory = Math.random()<0.7 ? 'none' : pick(['beret','glasses','glasses','sunglasses']);
+      c.accColor = c.accessory!=='none' && Math.random()<0.55 ? pick(Object.keys(AM.ACC_COLORS).slice(1)) : 'ink';
     } else {
       if(Math.random()<0.3){ var q=pick(CURATED); c={shape:q[0],color:q[1],material:q[2],eyes:q[3]}; }
       else { var m=pick(['jelly','jelly','soft','clay','velvet','glass','matte','soft']); c={material:m,color:pick(TASTE[m]),shape:pick(SER.blobs.shapes)};
@@ -468,7 +474,7 @@ document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async funct
   toast('Exported '+x.toUpperCase()); } catch(err){ console.warn(err); toast('Export failed: '+(err&&err.message||err)); } b.disabled=false; }; });
 // embed
 var SRC=$('agent-mascot-src').textContent.trim(), SRC_KB=(new Blob([SRC]).size/1024).toFixed(1), HOSTED='https://victoriawu-77.github.io/blob-atelier/agent-mascot.js';
-function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false']].concat(stageAcc()!=='none'?[['accessory',stageAcc()]]:[]).concat([['state',c.state]]); }
+function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false']].concat(stageAcc()!=='none'?[['accessory',stageAcc()]].concat(stageAccColor()!=='ink'?[['acc-color',stageAccColor()]]:[]):[]).concat([['state',c.state]]); }
 function tag(){ return '<agent-mascot '+attrs().map(function(a){ return a[0]+'="'+a[1]+'"'; }).join(' ')+'></agent-mascot>'; }
 function standalone(){ return '<script>\n'+SRC+'\n<\/script>\n'+tag(); }
 function scriptTag(){ return '<script src="agent-mascot.js"><\/script>\n'+tag(); }
@@ -485,7 +491,7 @@ function renderEmbed(){
     ? sp('t','<script>')+sp('c','/* agent-mascot v1 · '+SRC_KB+' KB, no dependencies · full source is included when you copy */')+sp('t','<\/script>')+'\n'+hTag()
     : sp('t','<script')+' '+sp('a','src')+'='+sp('s','"agent-mascot.js"')+sp('t','><\/script>')+'\n'+hTag();
   $('snipNote').hidden = tab!=='file';
-  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),state:state.state});
+  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),accColor:stageAccColor(),state:state.state});
   document.querySelectorAll('.tabs button').forEach(function(b){ var on=b.dataset.t===tab; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false'); });
 }
 $('apiCode').innerHTML=hJS(API); $('jsMeta').textContent=SRC_KB+' KB · works offline, no build step';
@@ -501,10 +507,10 @@ document.querySelectorAll('.cp').forEach(function(b){ var tm; b.onclick=function
   copyText(txt).then(function(){ b.textContent='Copied'; b.classList.add('ok'); clearTimeout(tm); tm=setTimeout(function(){ b.textContent='Copy'; b.classList.remove('ok'); },1400); }); }; });
 $('dlJs').onclick=function(){ download(new Blob([SRC],{type:'text/javascript'}),'agent-mascot.js'); };
 // boot
-readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc()})); sync(); writeHash();
+readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc(),accColor:stageAccColor()})); sync(); writeHash();
 requestAnimationFrame(function(){ markSeries(); requestAnimationFrame(function(){ $('series').classList.remove('init'); }); });
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(markSeries);
-window.addEventListener('hashchange',function(){ readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc()})); sync(); writeHash(); });
+window.addEventListener('hashchange',function(){ readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc(),accColor:stageAccColor()})); sync(); writeHash(); });
 })();
 </script>
 </body>

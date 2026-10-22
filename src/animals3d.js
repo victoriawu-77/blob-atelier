@@ -284,6 +284,7 @@ View.prototype.set=function(c){
   }
   if(reeyes) this._eyes(c);
   if(rebuild || (c.acc||'none')!==(C.acc||'none')) this._acc(c.acc||'none');
+  if(this._accm) this._accColor(c.accColor);
   this.cfg=Object.assign({},c);
   this._colors(c);
 };
@@ -332,17 +333,24 @@ View.prototype._eyes=function(c){
   U.uCarveK.value=K;
 };
 /* accessories: a felt beret, round glasses, sunglasses */
-var ACCM=null;
-function accMats(){ if(ACCM) return ACCM;
+// each view owns its accessory materials so every mascot can wear its own accessory colour
+function accMats(){
   var beret=furMaterial({shells:12,len:0.018,dens:300,grav:0.0,root:0.82,sheen:0.22,sheenR:0.7,rough:1.0,stray:0.02,lenVar:0.5,mottle:0.08,rad:0.42}); beret.color.set(0x1c1b21); beret.sheenColor.set(0x6b6a78); beret.sheen=0.6; beret.sheenRoughness=0.55;
   var U=beret.userData.U; U.uAO.value=0; U.uRoot.value=0.75;
-  ACCM={ beret:beret, frame:new THREE.MeshPhysicalMaterial({color:0x111014, roughness:0.22, clearcoat:1, clearcoatRoughness:0.1}),
-    lens:new THREE.MeshPhysicalMaterial({color:0x050507, roughness:0.05, metalness:0.2, clearcoat:1, clearcoatRoughness:0.02}) };
-  return ACCM; }
+  return { beret:beret, frame:new THREE.MeshPhysicalMaterial({color:0x111014, roughness:0.22, clearcoat:1, clearcoatRoughness:0.1}),
+    lens:new THREE.MeshPhysicalMaterial({color:0x050507, roughness:0.05, metalness:0.2, clearcoat:1, clearcoatRoughness:0.02}) }; }
+/* accessory colour: '' / null = the original near-black look; otherwise a hex. beret felt takes the dye with a soft
+   lighter sheen, frames take it as glossy acetate, sunglass lenses stay dark with a faint tint of the frame */
+View.prototype._accColor=function(hex){
+  var M=this._accm; if(!M) return; hex=hex||''; if(M._hex===hex) return; M._hex=hex;
+  if(!hex){ M.beret.color.set(0x1c1b21); M.beret.sheenColor.set(0x6b6a78); M.frame.color.set(0x111014); M.lens.color.set(0x050507); return; }
+  var c=new THREE.Color(hex), W=new THREE.Color(1,1,1);
+  M.beret.color.copy(c).multiplyScalar(0.92); M.beret.sheenColor.copy(c).lerp(W,0.5);
+  M.frame.color.copy(c); M.lens.color.set(0x050507).lerp(c,0.025); };
 function zeroAttrs(g){ var n=g.attributes.position.count; g.setAttribute('paint',new THREE.BufferAttribute(new Float32Array(n*4),4)); g.setAttribute('earW',new THREE.BufferAttribute(new Float32Array(n),1)); return g; }
 View.prototype._acc=function(kind){
   if(this.accG){ this.body.remove(this.accG); this.accG=null; } if(kind==='none' || !this.S) return;
-  var g=new THREE.Group(), S=this.S, D=this.D, M=accMats(), fin=this.fin; this.accG=g; this.body.add(g);
+  if(!this._accm) this._accm=accMats(); var g=new THREE.Group(), S=this.S, D=this.D, M=this._accm, fin=this.fin; this.accG=g; this.body.add(g);
   if(kind==='beret'){
     // a puffy felt disc with a soft band and a little stalk, tilted like a painter's beret
     var I=new THREE.Matrix4(), sh=function(geo,n){ var m=new THREE.InstancedMesh(zeroAttrs(geo),M.beret,n); for(var i=0;i<n;i++) m.setMatrixAt(i,I); m.castShadow=true; m.frustumCulled=false; return m; };

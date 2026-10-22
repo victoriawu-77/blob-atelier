@@ -61,6 +61,7 @@ mascot.addEventListener('change', e => console.log(e.detail));
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |
 | `accessory` | `none` `beret` `glasses` `sunglasses` (3D animals only) |
+| `acc-color` | Accessory colour: `ink` (default, the original near-black) `cream` `tomato` `blush` `mustard` `sage` `sky` `lilac`, or a `#hex`. Dyes the beret's felt and the glasses/shades frames; sunglass lenses stay dark |
 | `state`    | see below |
 
 ### How the 3D animals work

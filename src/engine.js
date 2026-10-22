@@ -11,6 +11,9 @@ var STATES = ['idle','listening','thinking','talking','working','happy','done','
 var MATERIALS = ['matte','soft','jelly','glass','clay','velvet'];
 var FABRICS = ['fluffy','knit','felt'];
 var ACCESSORIES = ['none','beret','glasses','sunglasses']; // 3D animals only
+// accessory colours: ink is each accessory's original near-black look (the default); a #hex also works
+var ACC_COLORS = { ink:'#1C1B21', cream:'#F3EBDD', tomato:'#E5534B', blush:'#F5A3B7', mustard:'#E8B23A', sage:'#8DB38B', sky:'#6FA8E8', lilac:'#AD94E6' };
+function accColorName(v){ if(!v) return null; v=String(v).trim(); var l=v.toLowerCase(); if(ACC_COLORS[l]) return l; if(/^#?[0-9a-f]{6}$/i.test(v)) return (v[0]==='#'?v:'#'+v).toUpperCase(); return null; }
 var ALL_MATERIALS = MATERIALS.concat(FABRICS);
 var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'fluffy', wool:'knit', yarn:'knit', plush:'knit', velour:'knit', fuzzy:'fluffy' };
 var SHAPES = ['mochi','bean','pebble','squircle','pill','drop','kitty','cloud'];
@@ -147,13 +150,13 @@ var uidN = 0;
 function el(tag, attrs, parent){ var e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(var k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
 
 class AgentMascot extends HTMLElement {
-  static get observedAttributes(){ return ['shape','color','material','state','eyes','cheeks','accessory','still','seed']; }
+  static get observedAttributes(){ return ['shape','color','material','state','eyes','cheeks','accessory','acc-color','still','seed']; }
   constructor(){
     super();
     this.uid = 'am'+(++uidN)+Math.random().toString(36).slice(2,6);
     var root = this.attachShadow({mode:'open'});
     root.innerHTML = '<style>:host{display:inline-block;width:240px;height:240px;position:relative;-webkit-tap-highlight-color:transparent}svg{width:100%;height:100%;display:block;position:relative;overflow:visible;touch-action:none;cursor:grab;user-select:none}svg:active{cursor:grabbing}</style>';
-    this.cfg = { shape:'mochi', color:PALETTE.peach, material:'jelly', state:'idle', eyes:'dot', cheeks:true, accessory:'none' };
+    this.cfg = { shape:'mochi', color:PALETTE.peach, material:'jelly', state:'idle', eyes:'dot', cheeks:true, accessory:'none', accColor:'ink' };
     this.t = 0; this.rand = rng(7);
     var g = GEO.mochi; this.from = Float64Array.from(g.p); this.to = Float64Array.from(g.p); this.cur = Float64Array.from(g.p);
     this.fg = { top:g.top, hw:g.hw, fy:g.fy, sp:g.sp }; this.tg = Object.assign({}, this.fg);
@@ -179,6 +182,7 @@ class AgentMascot extends HTMLElement {
     var a = {};
     ['shape','color','material','state','eyes','accessory'].forEach(function(k){ if(this.hasAttribute(k)) a[k]=this.getAttribute(k); }, this);
     if(this.hasAttribute('cheeks')) a.cheeks = this.getAttribute('cheeks')!=='false';
+    a.accColor = this.getAttribute('acc-color')||'ink';
     this.setConfig(a, true);
   }
   get config(){ return Object.assign({}, this.cfg); }
@@ -196,8 +200,10 @@ class AgentMascot extends HTMLElement {
     if(c.eyes && (c.eyes==='dot'||c.eyes==='capsule')) C.eyes=c.eyes;
     if(c.cheeks!==undefined) C.cheeks=!!c.cheeks;
     if(c.accessory && ACCESSORIES.indexOf(c.accessory)>=0) C.accessory=c.accessory;
+    if(c.accColor!==undefined){ var an=accColorName(c.accColor); C.accColor=an||'ink'; }
     if(c.state && STATES.indexOf(c.state)>=0 && c.state!==C.state){ this.st.prev=C.state; C.state=c.state; this._enterState(); }
     if(!fromAttr){ this._building=true; ['shape','material','state','eyes'].forEach(function(k){ this.setAttribute(k,C[k]); },this); if(C.accessory!=='none' || this.hasAttribute('accessory')) this.setAttribute('accessory',C.accessory);
+      if(C.accColor!=='ink') this.setAttribute('acc-color',C.accColor); else this.removeAttribute('acc-color');
       var nm=null; for(var p in PALETTE) if(PALETTE[p].toLowerCase()===C.color.toLowerCase()) nm=p; this.setAttribute('color', nm||C.color);
       this.setAttribute('cheeks', C.cheeks?'true':'false'); this._building=false; }
     if(still || !live.has(this)) this.step(0);
@@ -609,8 +615,8 @@ class AgentMascot extends HTMLElement {
     if(x!==this.x3 || x===0 || x===1) this._blend3(x);
     if(!ready || !this._vis) return;
     if(++this._shN>90){ this._shN=0; this._readShadow(); }
-    var hex=rgb2hex(this.col), key=[C.shape,C.material,C.eyes,C.cheeks,C.accessory,hex,this._shOp].join('|');
-    if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'fluffy', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, shadowOp:this._shOp}); }
+    var hex=rgb2hex(this.col), key=[C.shape,C.material,C.eyes,C.cheeks,C.accessory,C.accColor,hex,this._shOp].join('|');
+    if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'fluffy', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, accColor:C.accColor==='ink'?'':(ACC_COLORS[C.accColor]||C.accColor), shadowOp:this._shOp}); }
     var k=this.k, m=clamp(k.morph,0,1.15), pop=lerp(0.84,1,m);
     this.view3.pose({ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
       lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy });
@@ -666,7 +672,7 @@ AgentMascot.tick = function(dt){ live.forEach(function(m){ m.step(dt); }); };
 AgentMascot.PALETTE = PALETTE; AgentMascot.STATES = STATES; AgentMascot.MATERIALS = MATERIALS; AgentMascot.SHAPES = SHAPES; AgentMascot.ALIASES = ALIAS;
 AgentMascot.THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js'; AgentMascot.no3D = false; AgentMascot.adaptive = true;
 AgentMascot.supports3D = function(){ return !AgentMascot.no3D && G3.st!==-1 && hasGL2(); };
-AgentMascot.ANIMALS = ANIMALS; AgentMascot.ACCESSORIES = ACCESSORIES; AgentMascot.FABRICS = FABRICS; AgentMascot.SERIES = SERIES;
+AgentMascot.ANIMALS = ANIMALS; AgentMascot.ACCESSORIES = ACCESSORIES; AgentMascot.ACC_COLORS = ACC_COLORS; AgentMascot.FABRICS = FABRICS; AgentMascot.SERIES = SERIES;
 AgentMascot.seriesOf = function(shape){ shape=ALIAS[shape]||shape; return ANIMALS.indexOf(shape)>=0?'animals':'blobs'; };
 window.AgentMascot = AgentMascot;
 customElements.define('agent-mascot', AgentMascot);
