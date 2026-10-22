@@ -19,12 +19,13 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 
 ## Features
 
-- **8 shapes**, all morphing smoothly into each other: mochi, bean, pebble, squircle, pill, drop, kitty, cloud
-- **6 finishes**: matte, soft, jelly, frosted glass, clay, velvet
+- **Two series**, switched from the tab at the top:
+  - **Blobs**: 8 shapes that all morph smoothly into each other (mochi, bean, pebble, squircle, pill, drop, kitty, cloud) and 6 finishes (matte, soft, jelly, frosted glass, clay, velvet)
+  - **Animals**: 8 chubby critters (bunny, cat, dog, frog, hamster, bear, panda, chick) in 3 tactile fabric finishes: needle **felt**, fuzzy **plush** and chunky **knit**. Ears flop and twitch, snouts and eye patches turn with the gaze
 - **11 colors**, dot or capsule eyes, and optional blush
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
 - **8 agent states** you can switch from code (see below)
-- **Randomize with taste**: only pairs finishes and colors that work together
+- **Randomize with taste**: only pairs finishes and colors that work together, and stays inside the series you're in
 - **Export** to SVG, PNG (transparent), GIF, WebM, or an embeddable web component
 - Your design is saved in the URL hash, so every mascot is a shareable link
 
@@ -35,6 +36,8 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 
 <agent-mascot shape="mochi" color="peach" material="jelly" eyes="dot" state="idle"
               style="width:240px;height:240px"></agent-mascot>
+
+<agent-mascot shape="bunny" color="milk" material="plush" style="width:240px;height:240px"></agent-mascot>
 ```
 
 ```js
@@ -51,14 +54,16 @@ mascot.addEventListener('change', e => console.log(e.detail));
 
 | Attribute  | Values |
 |------------|--------|
-| `shape`    | `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias) |
-| `material` | `matte` `soft` `jelly` `glass` `clay` `velvet` |
+| `shape`    | Blobs: `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias)<br>Animals: `bunny` `cat` `dog` `frog` `hamster` `bear` `panda` `chick` |
+| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `felt` `plush` `knit` (any finish works on any shape) |
 | `color`    | `milk` `peach` `butter` `matcha` `mint` `sky` `lilac` `bubblegum` `tangerine` `cocoa` `ink`, or any hex |
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |
 | `state`    | see below |
 
 In the app, **Embed as web component** opens a dialog with your current design: **Single snippet** copies a fully self-contained `<script>` with the component inlined, **Script file** gives the `<script src>` version, and you can download `agent-mascot.js` directly.
+
+The fabric finishes are drawn with SVG filters (`feTurbulence` fibres, `feDisplacementMap` fuzz and `feDiffuseLighting` for a felted, tufted surface), so they stay crisp at any size and survive SVG, PNG, GIF and WebM export. `AgentMascot.SERIES` lists the shapes and finishes of each series.
 
 ## States
 
