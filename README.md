@@ -4,18 +4,31 @@
 
 <h1 align="center">Blob Atelier</h1>
 
-<p align="center"><b>Design a cute animated mascot for your AI agent. One HTML file.</b></p>
+<p align="center"><b>Design a cute animated mascot for your AI agent. One HTML file.</b><br>
+A free, open-source avatar maker and drop-in <code>&lt;agent-mascot&gt;</code> web component for chatbots, AI assistants and coding agents.</p>
 
 <p align="center">
   <a href="https://victoriawu-77.github.io/blob-atelier/"><b>Try it →</b></a> &nbsp;·&nbsp;
-  <a href="assets/demo.mp4">Watch the 12s demo</a> &nbsp;·&nbsp;
+  <a href="assets/promo.mp4">Watch the 30s video</a> &nbsp;·&nbsp;
   <a href="agent-mascot.js">agent-mascot.js</a> &nbsp;·&nbsp;
   <a href="https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895"><b>Remix on Happycapy</b></a>
+</p>
+
+<p align="center">
+  <a href="https://victoriawu-77.github.io/blob-atelier/"><img src="assets/demo.gif" alt="A pink jelly kitty mascot that gets poked, squishes, and switches between listening, thinking, talking, working, happy, done and error states, then morphs through all eight shapes" width="100%"></a>
 </p>
 
 ---
 
 Pick a shape, a finish and a color, and you get a mouthless little blob that breathes, blinks, follows your cursor and squishes when you poke it. Then drop it into your agent's UI with one tag. It's vanilla JS and inline SVG, with no build step and no dependencies.
+
+## Use it for
+
+- A face for your **AI chat assistant or chatbot**, with states that follow the conversation (listening, thinking, talking)
+- A status indicator for **coding agents and background tasks** (working, done, error)
+- **Voice agents**, where `talking` pulses in a syllable rhythm without needing a mouth
+- Onboarding screens, empty states, loading screens and app icons (export SVG or PNG)
+- Stickers and social posts (export GIF or WebM)
 
 ## Features
 
