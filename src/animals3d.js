@@ -115,37 +115,74 @@ function mesh(S){
   return { geo:g, probe:probe, top:top, foot:foot, f:f };
 }
 var CACHE={};
+/* felt flyaways: thin tapered 3-sided tubes. most arch over the surface and land again (crossed fibres), some lift off
+   into the halo. built in body space from the SDF so they follow the surface; paint/earW copied from the root vertex */
+function flyaways(D,count,seed){
+  var g0=D.geo, P=g0.attributes.position.array, Nn=g0.attributes.normal.array, PA=g0.attributes.paint.array, EW=g0.attributes.earW.array, I=g0.index.array, f=D.f;
+  var st=seed>>>0||1; function rnd(){ st=(st+0x6D2B79F5)>>>0; var t=st; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }
+  var nt=I.length/3, cum=new Float32Array(nt), tot=0, i;
+  for(i=0;i<nt;i++){ var a=I[3*i]*3,b=I[3*i+1]*3,c=I[3*i+2]*3, ux=P[b]-P[a],uy=P[b+1]-P[a+1],uz=P[b+2]-P[a+2],vx=P[c]-P[a],vy=P[c+1]-P[a+1],vz=P[c+2]-P[a+2];
+    tot+=0.5*Math.hypot(uy*vz-uz*vy,uz*vx-ux*vz,ux*vy-uy*vx); cum[i]=tot; }
+  function proj(p){ for(var k=0;k<3;k++){ var e=0.003, d=f(p.x,p.y,p.z), gx=(f(p.x+e,p.y,p.z)-f(p.x-e,p.y,p.z))/(2*e), gy=(f(p.x,p.y+e,p.z)-f(p.x,p.y-e,p.z))/(2*e), gz=(f(p.x,p.y,p.z+e)-f(p.x,p.y,p.z-e))/(2*e), L2=gx*gx+gy*gy+gz*gz||1; p.x-=gx*d/L2; p.y-=gy*d/L2; p.z-=gz*d/L2; }
+    var e2=0.003, nx=f(p.x+e2,p.y,p.z)-f(p.x-e2,p.y,p.z), ny=f(p.x,p.y+e2,p.z)-f(p.x,p.y-e2,p.z), nz=f(p.x,p.y,p.z+e2)-f(p.x,p.y,p.z-e2); return new V3(nx,ny,nz).normalize(); }
+  var SEG=8, pos=[], nrm=[], paint=[], ew=[], tint=[], idx=[], made=0, guard=0;
+  while(made<count && guard++<count*4){
+    var r=rnd()*tot, lo=0, hi=nt-1; while(lo<hi){ var mid=(lo+hi)>>1; if(cum[mid]<r) lo=mid+1; else hi=mid; }
+    var v0=I[3*lo], v1=I[3*lo+1], v2=I[3*lo+2], s1=rnd(), s2=rnd(); if(s1+s2>1){ s1=1-s1; s2=1-s2; }
+    var p0=new V3(P[3*v0],P[3*v0+1],P[3*v0+2]).multiplyScalar(1-s1-s2).add(new V3(P[3*v1],P[3*v1+1],P[3*v1+2]).multiplyScalar(s1)).add(new V3(P[3*v2],P[3*v2+1],P[3*v2+2]).multiplyScalar(s2));
+    if(p0.y<0.16) continue;                                         // nothing under the belly / on the floor
+    var n0=new V3(Nn[3*v0],Nn[3*v0+1],Nn[3*v0+2]), t=new V3(rnd()-0.5,rnd()-0.5,rnd()-0.5); t.addScaledVector(n0,-t.dot(n0)); if(t.lengthSq()<1e-4) continue; t.normalize();
+    var bn=new V3().crossVectors(n0,t), lift=rnd()<0.3, L=lift?0.05+rnd()*0.07:0.05+rnd()*0.06, H=lift?L*(0.35+rnd()*0.5):0.012+rnd()*0.022, curl=(rnd()-0.5)*0.6, rad=lift?0.0026:0.003, tn=rnd();
+    var base=pos.length/3, pts=[];
+    for(var k=0;k<=SEG;k++){ var u=k/SEG, q=p0.clone().addScaledVector(t,L*u).addScaledVector(bn,curl*L*u*u), nn=proj(q);
+      var hgt = lift ? H*Math.pow(u,1.3)+0.006 : H*Math.sin(Math.PI*u)+0.004; pts.push(q.addScaledVector(nn,hgt)); }
+    for(k=0;k<=SEG;k++){ var c=pts[k], dir=pts[Math.min(SEG,k+1)].clone().sub(pts[Math.max(0,k-1)]).normalize(), a1=new V3().crossVectors(dir,n0); if(a1.lengthSq()<1e-6) a1.set(1,0,0); a1.normalize(); var a2=new V3().crossVectors(dir,a1);
+      var rr=rad*(lift ? 1-0.75*k/SEG : 0.55+0.45*Math.sin(Math.PI*Math.min(1,0.15+0.85*k/SEG)));
+      for(var j=0;j<3;j++){ var ang=j*2.0944, o=a1.clone().multiplyScalar(Math.cos(ang)).addScaledVector(a2,Math.sin(ang)); pos.push(c.x+o.x*rr,c.y+o.y*rr,c.z+o.z*rr); o.addScaledVector(n0,0.6).normalize(); nrm.push(o.x,o.y,o.z);
+        paint.push(PA[4*v0],PA[4*v0+1],PA[4*v0+2],PA[4*v0+3]); ew.push(EW[v0]); tint.push(tn); } }
+    for(k=0;k<SEG;k++) for(j=0;j<3;j++){ var A=base+k*3+j, B=base+k*3+(j+1)%3, C2=A+3, D2=B+3; idx.push(A,B,D2,A,D2,C2); }
+    made++; }
+  var g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+  g.setAttribute('paint',new THREE.Float32BufferAttribute(paint,4)); g.setAttribute('earW',new THREE.Float32BufferAttribute(ew,1)); g.setAttribute('fTint',new THREE.Float32BufferAttribute(tint,1)); g.setIndex(idx); g.computeBoundingSphere();
+  return g; }
 function shapeData(name){ if(!CACHE[name]) CACHE[name]=mesh(SH[name]); return CACHE[name]; }
 /* ---------- fur material: MeshPhysicalMaterial + instanced shells ---------- */
 var FIN={
   plush:{ shells:24, len:0.046, dens:220, grav:0.25, root:0.62, sheen:1.0, sheenR:0.32, rough:0.95, stray:0.0, lenVar:0.45, mottle:0.0, rad:0.36 },
-  felt:{ shells:9, len:0.011, dens:360, grav:0.0, root:0.82, sheen:0.22, sheenR:0.7, rough:1.0, stray:0.035, lenVar:0.5, mottle:0.11, rad:0.42 },
+  // felt: needle-felted wool. matted crossed fibres lying on the surface (arched loops in the shells), per-fibre
+  // colour variation, plus a sparse halo of real thin flyaway fibres (fly = count, tube geometry)
+  felt:{ shells:14, len:0.026, dens:360, grav:0.0, root:0.8, sheen:0.35, sheenR:0.6, rough:1.0, stray:0.0, lenVar:0.5, mottle:0.1, rad:0.42, felt:1, fsc:22, fw:0.09, fly:220 },
   fluffy:{ shells:40, len:0.12, dens:105, grav:0.6, root:0.42, sheen:0.8, sheenR:0.45, rough:0.95, stray:0.0, lenVar:0.55, mottle:0.0, clump:1, rad:0.5 }
 };
-function furMaterial(fin){
+function furMaterial(fin,shareU,fiber){
   var m=new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:fin.rough, metalness:0, sheen:fin.sheen, sheenRoughness:fin.sheenR, sheenColor:new THREE.Color(1,1,1) });
-  var U={ uLen:{value:fin.len}, uShells:{value:fin.shells}, uDens:{value:fin.dens}, uGrav:{value:fin.grav}, uRoot:{value:fin.root}, uStray:{value:fin.stray}, uLenVar:{value:fin.lenVar}, uMottle:{value:fin.mottle}, uClump:{value:fin.clump?1:0}, uRad:{value:fin.rad},
+  var U=shareU||{ uLen:{value:fin.len}, uShells:{value:fin.shells}, uDens:{value:fin.dens}, uGrav:{value:fin.grav}, uRoot:{value:fin.root}, uStray:{value:fin.stray}, uLenVar:{value:fin.lenVar}, uMottle:{value:fin.mottle}, uClump:{value:fin.clump?1:0}, uRad:{value:fin.rad},
     cLight:{value:new THREE.Color()}, cPink:{value:new THREE.Color()}, cDark:{value:new THREE.Color()}, cCheek:{value:new THREE.Color()}, uCheeks:{value:1}, uEar:{value:new THREE.Vector2()}, uEarP:{value:new V3()}, uAO:{value:1},
-    uCarveK:{value:0}, uCarveC:{value:[new V3(),new V3(),new V3()]}, uCarveN:{value:[new V3(0,0,1),new V3(0,0,1),new V3(0,0,1)]}, uCarveU:{value:[new V3(0,1,0),new V3(0,1,0),new V3(0,1,0)]}, uCarveR:{value:[new THREE.Vector2(1,1),new THREE.Vector2(1,1),new THREE.Vector2(1,1)]}, uCarveA:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]} };
+    uCarveK:{value:0}, uCarveC:{value:[new V3(),new V3(),new V3()]}, uCarveN:{value:[new V3(0,0,1),new V3(0,0,1),new V3(0,0,1)]}, uCarveU:{value:[new V3(0,1,0),new V3(0,1,0),new V3(0,1,0)]}, uCarveR:{value:[new THREE.Vector2(1,1),new THREE.Vector2(1,1),new THREE.Vector2(1,1)]}, uCarveA:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},
+    uFelt:{value:fin.felt?1:0}, uFSc:{value:fin.fsc||16}, uFW:{value:fin.fw||0.075} };
+  if(fiber) m.defines={FIBER:1};
   m.userData.U=U;
   m.onBeforeCompile=function(sh){
     Object.assign(sh.uniforms,U);
-    sh.vertexShader = 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
+    sh.vertexShader = (fiber?'#define FIBER 1\nattribute float fTint;\nvarying float vFT;\n':'') + 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
       + 'vec3 earRot(vec3 p,float a){ float c=cos(a),s=sin(a); vec2 d=p.xy-vec2(sign(p.x)*uEarP.x,uEarP.y); return vec3(vec2(sign(p.x)*uEarP.x,uEarP.y)+vec2(d.x*c-d.y*s,d.x*s+d.y*c),p.z); }\n'
       + sh.vertexShader
       .replace('#include <beginnormal_vertex>','vec3 objectNormal = vec3( normal );\nfloat ea = earW>0.0 ? uEar.y*earW : -uEar.x*earW;\nif(abs(ea)>0.0001){ float c=cos(ea),s=sin(ea); objectNormal.xy=vec2(objectNormal.x*c-objectNormal.y*s,objectNormal.x*s+objectNormal.y*c); }')
-      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;\nvDisp=transformed;');
-    sh.fragmentShader = 'uniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nuniform float uCarveK;\nuniform vec3 uCarveC[3]; uniform vec3 uCarveN[3]; uniform vec3 uCarveU[3]; uniform vec2 uCarveR[3]; uniform vec4 uCarveA[3];\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
+      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;\nvDisp=transformed;\n#ifdef FIBER\nvFT=fTint;\n#endif');
+    sh.fragmentShader = (fiber?'#define FIBER 1\nvarying float vFT;\n':'') + 'uniform float uFelt,uFSc,uFW;\nuniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nuniform float uCarveK;\nuniform vec3 uCarveC[3]; uniform vec3 uCarveN[3]; uniform vec3 uCarveU[3]; uniform vec2 uCarveR[3]; uniform vec4 uCarveA[3];\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
       + 'float carve(){ float k=0.0; for(int i=0;i<3;i++){ if(float(i)>=uCarveK) break; vec3 d=vDisp-uCarveC[i], n=uCarveN[i], u=uCarveU[i], r=cross(u,n); if(dot(d,n)<-0.06) continue; vec2 q=vec2(dot(d,r),dot(d,u)); float e; vec4 A=uCarveA[i]; if(A.z>0.0){ q-=A.xy; float dd = q.y>=0.0 ? abs(length(q)-A.z) : min(length(q-vec2(A.z,0.0)),length(q+vec2(A.z,0.0))); e=dd/A.w; } else e=length(q/uCarveR[i]); k=max(k,1.0-smoothstep(0.92,1.3,e)); } return k; }\n'
       + 'uvec3 pcg3(uvec3 v){ v=v*1664525u+1013904223u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; v^=v>>16u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; return v; }\n'
       + 'vec3 h33(vec3 p){ return vec3(pcg3(uvec3(ivec3(floor(p))+ivec3(65536))))*(1.0/4294967295.0); }\n'
       + 'float vnoise(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); float n=mix(mix(mix(h33(i).x,h33(i+vec3(1,0,0)).x,f.x),mix(h33(i+vec3(0,1,0)).x,h33(i+vec3(1,1,0)).x,f.x),f.y),mix(mix(h33(i+vec3(0,0,1)).x,h33(i+vec3(1,0,1)).x,f.x),mix(h33(i+vec3(0,1,1)).x,h33(i+vec3(1,1,1)).x,f.x),f.y),f.z); return n; }\n'
       + 'float strand(vec3 q,vec3 n,float h,out float tip){ vec3 c=floor(q); vec3 r=h33(c); vec3 d=fract(q)-0.5-(r-0.5)*0.42; d-=dot(d,n)*n; float len=1.0-uLenVar*r.z; tip=h/len; if(h>len) return 0.0; float rad=uRad*pow(max(0.0,1.0-h/len),0.55); return 1.0-smoothstep(rad*0.7,rad,length(d)); }\n'
+      // felt: one short fibre per cell lying along the surface in a random direction, slightly bent, arching up in the
+      // middle. h in [0,1] is the shell height; returns coverage, tint (per fibre) and how high the fibre arches here
+      + 'float feltFib(vec3 q,vec3 n,float h,float w,float seed,inout float tint){ vec3 b=floor(q-0.5); float best=0.0; for(int i=0;i<8;i++){ vec3 c=b+vec3(float(i&1),float((i>>1)&1),float((i>>2)&1)); vec3 r=h33(c+seed), r2=h33(c+seed+17.0); vec3 t=r2-0.5; t-=dot(t,n)*n; float tl=length(t); if(tl<0.04) continue; t/=tl; vec3 bn=cross(n,t); vec3 d=q-(c+0.5+(r-0.5)*0.3); d-=dot(d,n)*n; float hl=0.55+0.3*r.z; float s=dot(d,t), u=s/hl; if(abs(u)>1.0) continue; float arch=(1.0-u*u)*(0.25+0.75*r.x*r.x); if(h>arch) continue; float off=dot(d,bn)-(r2.z-0.5)*0.5*(u*u-0.33)*hl; float wd=w*(1.0-0.45*h); float a=1.0-smoothstep(wd*0.55,wd,abs(off)); if(a>best){ best=a; tint=r2.x; } } return best; }\n'
       + sh.fragmentShader
-      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH;\nfloat cv=uCarveK>0.0?carve():0.0;\n// fur is trimmed short around the eyes so shells never cover them\nif(vH>0.0 && vH>(1.0-cv)*1.02-0.02) discard;\nif(vH>0.0){ vec3 n=normalize(vONrm); vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; }')
-      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\ncol*=mix(uRoot,1.0,pow(clamp(max(vH,cv*0.85),0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
+      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH, fTint=0.5, fGap=1.0;\nmat3 fM=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774), fM2=mat3(0.0,0.8,0.6, 0.6,-0.48,0.64, 0.8,0.36,-0.48);\nfloat cv=uCarveK>0.0?carve():0.0;\n// fur is trimmed short around the eyes so shells never cover them\nif(vH>0.0 && vH>(1.0-cv)*1.02-0.02) discard;\nif(vH>0.0){ vec3 n=normalize(vONrm); if(uFelt>0.5){ vec3 nf=fM*n, qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float a1=feltFib(qf,nf,vH,uFW,0.0,fTint); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,vH,uFW*1.15,41.0,fTint); furA=max(a1,a2); if(furA<0.5) discard; } else { vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; } }\n#ifdef FIBER\nfTint=vFT; if(uCarveK>0.0 && carve()>0.02) discard;\n#else\nif(vH==0.0 && uFelt>0.5){ vec3 nf=fM*normalize(vONrm), qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float t0=0.5; float a1=feltFib(qf,nf,0.0,uFW*1.1,0.0,t0); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,0.0,uFW*1.25,41.0,t0); float t3=0.5; float a3=feltFib(qf*2.3+vec3(2.2,8.1,4.4),nf,0.0,uFW*1.3,73.0,t3); fGap=max(max(a1,a2),a3*0.7); fTint=max(a1,a2)>0.3?t0:t3; }\n#endif')
+      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nif(uFelt>0.5){ col*=1.0+uMottle*1.5*(fTint-0.5); if(fTint>0.93) col*=1.1; col*=mix(0.86,1.0,fGap); }\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\nfloat hh2=max(vH,cv*0.85);\n#ifdef FIBER\nhh2=1.0;\n#endif\ncol*=mix(uRoot,1.0,pow(clamp(hh2,0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
   };
-  m.customProgramCacheKey=function(){ return 'amfur2'; };
+  m.customProgramCacheKey=function(){ return fiber?'amfur3f':'amfur3'; };
   return m;
 }
 /* ---------- shared renderer + environment ---------- */
@@ -189,10 +226,11 @@ function View(){
 }
 View.prototype.set=function(c){
   var C=this.cfg, rebuild=c.shape!==C.shape || c.material!==C.material, reeyes=rebuild || c.eyes!==C.eyes;
-  if(rebuild){ var self=this; if(this.mat) this.mat.dispose(); this.body.clear(); this.eyesG=null; var D=shapeData(c.shape), S=SH[c.shape], fin=FIN[c.material]||FIN.plush;
+  if(rebuild){ var self=this; if(this.mat) this.mat.dispose(); if(this.fibMat){ this.fibMat.dispose(); this.fibMat=null; } this.body.clear(); this.eyesG=null; var D=shapeData(c.shape), S=SH[c.shape], fin=FIN[c.material]||FIN.plush;
     this.D=D; this.S=S; this.fin=fin;
     var mat=furMaterial(fin); this.mat=mat; var im=new THREE.InstancedMesh(D.geo,mat,fin.shells); var I=new THREE.Matrix4(); for(var i=0;i<fin.shells;i++) im.setMatrixAt(i,I);
     im.castShadow=false; im.frustumCulled=false; this.body.add(im); this.fur=im;
+    if(fin.fly){ var fk='fly:'+fin.fly; if(!D[fk]) D[fk]=flyaways(D,fin.fly,7+c.shape.length*131); this.fibMat=furMaterial(fin,mat.userData.U,true); var fm=new THREE.Mesh(D[fk],this.fibMat); fm.frustumCulled=false; this.body.add(fm); }
     // one cheap caster for the shadow map instead of every shell
     if(!this.casterMat) this.casterMat=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}); var cst=new THREE.Mesh(D.geo,this.casterMat); cst.castShadow=true; cst.renderOrder=-1; this.body.add(cst);
     if(S.ear) mat.userData.U.uEarP.value.set(S.ear[0],S.ear[1],S.ear[2]);
@@ -253,7 +291,7 @@ View.prototype._eyes=function(c){
 /* accessories: a felt beret, round glasses, sunglasses */
 var ACCM=null;
 function accMats(){ if(ACCM) return ACCM;
-  var beret=furMaterial(Object.assign({},FIN.felt,{shells:12,len:0.018,dens:300,stray:0.02,mottle:0.08})); beret.color.set(0x1c1b21); beret.sheenColor.set(0x6b6a78); beret.sheen=0.6; beret.sheenRoughness=0.55;
+  var beret=furMaterial({shells:12,len:0.018,dens:300,grav:0.0,root:0.82,sheen:0.22,sheenR:0.7,rough:1.0,stray:0.02,lenVar:0.5,mottle:0.08,rad:0.42}); beret.color.set(0x1c1b21); beret.sheenColor.set(0x6b6a78); beret.sheen=0.6; beret.sheenRoughness=0.55;
   var U=beret.userData.U; U.uAO.value=0; U.uRoot.value=0.75;
   ACCM={ beret:beret, frame:new THREE.MeshPhysicalMaterial({color:0x111014, roughness:0.22, clearcoat:1, clearcoatRoughness:0.1}),
     lens:new THREE.MeshPhysicalMaterial({color:0x050507, roughness:0.05, metalness:0.2, clearcoat:1, clearcoatRoughness:0.02}) };
@@ -290,6 +328,7 @@ View.prototype._colors=function(c){
   var b2=new THREE.Color().setHSL(hsl.h, Math.min(1,hsl.s*1.25+0.06), hsl.l*0.93);
   this.mat.color.copy(b2); var L=hsl.l, dark=L<0.2; if(this._darkBody!==dark && this.S && this.S.darkEyes){ this._darkBody=dark; this._eyes(c); } this._darkBody=dark;
   this.mat.sheenColor.copy(b2).lerp(new THREE.Color(1,1,1),0.55);
+  if(this.fibMat){ this.fibMat.color.copy(b2); this.fibMat.sheenColor.copy(this.mat.sheenColor); }
   U.cLight.value.copy(b2).lerp(new THREE.Color(1,0.98,0.94), dark?0.35:0.68);
   U.cPink.value.copy(b2).lerp(new THREE.Color(1,0.5,0.62),0.7);
   U.cDark.value.copy(this.S===SH.panda ? new THREE.Color(dark?0xe9e4dc:0x1d1b22) : new THREE.Color(b2).lerp(new THREE.Color(0x5a3626),0.38));
