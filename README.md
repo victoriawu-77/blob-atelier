@@ -21,7 +21,7 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 
 - **Two series**, switched from the tab at the top:
   - **Blobs**: 8 shapes that all morph smoothly into each other (mochi, bean, pebble, squircle, pill, drop, kitty, cloud) and 6 finishes (matte, soft, jelly, frosted glass, clay, velvet)
-  - **Animals**: 8 chunky 3D plush toys (bunny, cat, dog, frog, hamster, bear, panda, chick) with glossy bead eyes, in 3 fabric finishes: long-pile **fluffy** (the default), velvety **plush** and matte **felt**. Optional accessories: a felt **beret**, round **glasses** or **sunglasses**. Ears flop and twitch, and the whole toy turns toward your cursor
+  - **Animals**: 8 chunky 3D plush toys (bunny, cat, dog, frog, hamster, bear, panda, chick) with glossy bead eyes, in 3 fabric finishes: long-pile **fluffy** (the default), knitted-yarn **knit** and matte needle-felted **felt**. Optional accessories: a felt **beret**, round **glasses** or **sunglasses**. Ears flop and twitch, and the whole toy turns toward your cursor
 - **11 colors**, dot or capsule eyes, and optional blush
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
 - **8 agent states** you can switch from code (see below)
@@ -56,7 +56,7 @@ mascot.addEventListener('change', e => console.log(e.detail));
 | Attribute  | Values |
 |------------|--------|
 | `shape`    | Blobs: `mochi` `bean` `pebble` `squircle` `pill` `drop` `kitty` `cloud` (`bun` still works as an alias)<br>Animals: `bunny` `cat` `dog` `frog` `hamster` `bear` `panda` `chick` |
-| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `fluffy` (default) `plush` `felt` (`knit` and `wool` map to `felt`, `fur` to `fluffy`) |
+| `material` | Blobs: `matte` `soft` `jelly` `glass` `clay` `velvet`<br>Animals: `fluffy` (default) `knit` `felt` (`plush`, `wool`, `yarn` and `velour` map to `knit`, `fur` to `fluffy`) |
 | `color`    | `milk` `peach` `butter` `matcha` `mint` `sky` `lilac` `bubblegum` `tangerine` `cocoa` `ink`, or any hex |
 | `eyes`     | `dot` `capsule` |
 | `cheeks`   | `true` `false` |

@@ -117,6 +117,39 @@ function mesh(S){
 var CACHE={};
 /* felt flyaways: thin tapered 3-sided tubes. most arch over the surface and land again (crossed fibres), some lift off
    into the halo. built in body space from the SDF so they follow the surface; paint/earW copied from the root vertex */
+function knitField(D,S,kr){
+  var g=D.geo, P=g.attributes.position.array, EW=g.attributes.earW.array, I=g.index.array, n=P.length/3, i,j,k;
+  var dist=new Float64Array(n).fill(1e9), adj=[]; for(i=0;i<n;i++) adj.push([]);
+  function L(a,b){ return Math.hypot(P[3*a]-P[3*b],P[3*a+1]-P[3*b+1],P[3*a+2]-P[3*b+2]); }
+  for(i=0;i<I.length;i+=3) for(j=0;j<3;j++){ var a=I[i+j], b=I[i+(j+1)%3]; adj[a].push(b); adj[b].push(a); }
+  // crown: the top of the head on the centre line (between the ears)
+  var src=0, best=1e9; for(i=0;i<n;i++){ var dd=Math.hypot(P[3*i],P[3*i+1]-D.top,P[3*i+2]); if(dd<best){ best=dd; src=i; } }
+  dist[src]=0; var heap=[[0,src]];
+  function push(x){ heap.push(x); var c=heap.length-1; while(c>0){ var p=(c-1)>>1; if(heap[p][0]<=heap[c][0]) break; var t=heap[p]; heap[p]=heap[c]; heap[c]=t; c=p; } }
+  function pop(){ var top=heap[0], last=heap.pop(); if(heap.length){ heap[0]=last; var c=0; for(;;){ var l=2*c+1, r=l+1, m=c; if(l<heap.length&&heap[l][0]<heap[m][0]) m=l; if(r<heap.length&&heap[r][0]<heap[m][0]) m=r; if(m===c) break; var t=heap[m]; heap[m]=heap[c]; heap[c]=t; c=m; } } return top; }
+  while(heap.length){ var it=pop(), u=it[1]; if(it[0]>dist[u]) continue; for(k=0;k<adj[u].length;k++){ var w=adj[u][k], nd=dist[u]+L(u,w); if(nd<dist[w]){ dist[w]=nd; push([nd,w]); } } }
+  // refine the edge-graph distances with triangle (unfolded) updates so rows come out round, not polygonal
+  function upd(A,B,C){ var a=dist[A], b=dist[B]; if(a>=1e9||b>=1e9) return; var ax=P[3*A],ay=P[3*A+1],az=P[3*A+2], ux=P[3*B]-ax,uy=P[3*B+1]-ay,uz=P[3*B+2]-az, Lb=Math.hypot(ux,uy,uz); ux/=Lb; uy/=Lb; uz/=Lb;
+    var cx=P[3*C]-ax,cy=P[3*C+1]-ay,cz=P[3*C+2]-az, px=cx*ux+cy*uy+cz*uz, qy=Math.hypot(cx-px*ux,cy-px*uy,cz-px*uz);
+    var sx=(a*a-b*b+Lb*Lb)/(2*Lb), s2=a*a-sx*sx; if(s2<0) return; var sy=-Math.sqrt(s2), xi=sx+(px-sx)*(-sy)/(qy-sy);
+    if(xi>=0 && xi<=Lb){ var dc=Math.hypot(px-sx,qy-sy); if(dc<dist[C]) dist[C]=dc; } }
+  for(var pass=0;pass<4;pass++) for(i=0;i<I.length;i+=3){ var A=I[i],B=I[i+1],C=I[i+2]; upd(A,B,C); upd(B,C,A); upd(C,A,B); }
+  var kv=new Float32Array(n); for(i=0;i<n;i++) kv[i]=dist[i]; g.setAttribute('knitV',new THREE.BufferAttribute(kv,1));
+  // ears: knitted as their own pieces. rows run from the pivot toward the ear's tip, columns across its width
+  var ear=null; if(S.ear){ var base=new V3(S.ear[0],S.ear[1],S.ear[2]), tip=null, far=0, cnt=0;
+    for(i=0;i<n;i++) if(EW[i]>0.5 && P[3*i]>0){ cnt++; var dd2=Math.hypot(P[3*i]-base.x,P[3*i+1]-base.y,P[3*i+2]-base.z); if(dd2>far){ far=dd2; tip=new V3(P[3*i],P[3*i+1],P[3*i+2]); } }
+    if(cnt>20){ var ax=tip.clone().sub(base).normalize(), wd=new V3(0,0,1).cross(ax).normalize(); if(wd.x<0) wd.negate();
+      var lo=1e9; for(i=0;i<n;i++) if(EW[i]>0.5 && P[3*i]>0) lo=Math.min(lo,(P[3*i]-base.x)*ax.x+(P[3*i+1]-base.y)*ax.y+(P[3*i+2]-base.z)*ax.z);
+      ear={ax:ax, wd:wd, base:base, off:lo}; } }
+  // circumference of each row = area of the band / row height (body, and the right ear)
+  var cb=new Float32Array(64), ce=new Float32Array(24);
+  for(i=0;i<I.length;i+=3){ var A=I[i],B=I[i+1],C=I[i+2], ux2=P[3*B]-P[3*A],uy2=P[3*B+1]-P[3*A+1],uz2=P[3*B+2]-P[3*A+2],vx=P[3*C]-P[3*A],vy=P[3*C+1]-P[3*A+1],vz=P[3*C+2]-P[3*A+2];
+    var ar=0.5*Math.hypot(uy2*vz-uz2*vy,uz2*vx-ux2*vz,ux2*vy-uy2*vx), ew=(EW[A]+EW[B]+EW[C])/3, cx2=(P[3*A]+P[3*B]+P[3*C])/3, cy2=(P[3*A+1]+P[3*B+1]+P[3*C+1])/3, cz2=(P[3*A+2]+P[3*B+2]+P[3*C+2])/3;
+    if(Math.abs(ew)>0.5){ if(ear && cx2>0){ var vv=(cx2-ear.base.x)*ear.ax.x+(cy2-ear.base.y)*ear.ax.y+(cz2-ear.base.z)*ear.ax.z-ear.off; ce[Math.max(0,Math.min(23,Math.floor(vv/kr)))]+=ar/kr; } }
+    else cb[Math.max(0,Math.min(63,Math.floor((kv[A]+kv[B]+kv[C])/3/kr)))]+=ar/kr; }
+  function smooth(t){ var o=new Float32Array(t.length); for(var q=0;q<t.length;q++){ var s0=0,w0=0; for(var r=-1;r<=1;r++){ var x=t[q+r]; if(x>0){ s0+=x*(r?0.5:1); w0+=(r?0.5:1); } } o[q]=w0?s0/w0:0; } return o; }
+  return { cb:smooth(cb), ce:smooth(ce), ear:ear };
+}
 function flyaways(D,count,seed){
   var g0=D.geo, P=g0.attributes.position.array, Nn=g0.attributes.normal.array, PA=g0.attributes.paint.array, EW=g0.attributes.earW.array, I=g0.index.array, f=D.f;
   var st=seed>>>0||1; function rnd(){ st=(st+0x6D2B79F5)>>>0; var t=st; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }
@@ -148,7 +181,9 @@ function flyaways(D,count,seed){
 function shapeData(name){ if(!CACHE[name]) CACHE[name]=mesh(SH[name]); return CACHE[name]; }
 /* ---------- fur material: MeshPhysicalMaterial + instanced shells ---------- */
 var FIN={
-  plush:{ shells:24, len:0.046, dens:220, grav:0.25, root:0.62, sheen:1.0, sheenR:0.32, rough:0.95, stray:0.0, lenVar:0.45, mottle:0.0, rad:0.36 },
+  // knit: a knitted yarn toy. stockinette V stitches in rows that ring the body from the crown down (ears are knitted
+  // as their own tubes), stitch relief built from the shells, twisted plies and a light fuzz (stray = fuzz fraction)
+  knit:{ shells:12, len:0.03, dens:430, grav:0.0, root:0.62, sheen:0.3, sheenR:0.8, rough:1.0, stray:0.16, lenVar:0.35, mottle:0.0, rad:0.13, knit:1, kw:0.105, kr:0.086 },
   // felt: needle-felted wool. matted crossed fibres lying on the surface (arched loops in the shells), per-fibre
   // colour variation, plus a sparse halo of real thin flyaway fibres (fly = count, tube geometry)
   felt:{ shells:14, len:0.026, dens:360, grav:0.0, root:0.8, sheen:0.35, sheenR:0.6, rough:1.0, stray:0.0, lenVar:0.5, mottle:0.1, rad:0.42, felt:1, fsc:22, fw:0.09, fly:220 },
@@ -161,15 +196,16 @@ function furMaterial(fin,shareU,fiber){
     uCarveK:{value:0}, uCarveC:{value:[new V3(),new V3(),new V3()]}, uCarveN:{value:[new V3(0,0,1),new V3(0,0,1),new V3(0,0,1)]}, uCarveU:{value:[new V3(0,1,0),new V3(0,1,0),new V3(0,1,0)]}, uCarveR:{value:[new THREE.Vector2(1,1),new THREE.Vector2(1,1),new THREE.Vector2(1,1)]}, uCarveA:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},
     uFelt:{value:fin.felt?1:0}, uFSc:{value:fin.fsc||16}, uFW:{value:fin.fw||0.075} };
   if(fiber) m.defines={FIBER:1};
+  if(fin.knit && !shareU){ m.defines={KNIT:1}; Object.assign(U,{ uKW:{value:fin.kw}, uKR:{value:fin.kr}, uKC:{value:new Float32Array(64)}, uKEw:{value:new V3(1,0,0)}, uKEa:{value:new V3(0,1,0)}, uKEb:{value:new V3()}, uKEo:{value:0} }); }
   m.userData.U=U;
   m.onBeforeCompile=function(sh){
     Object.assign(sh.uniforms,U);
-    sh.vertexShader = (fiber?'#define FIBER 1\nattribute float fTint;\nvarying float vFT;\n':'') + 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
+    sh.vertexShader = (fin.knit?'#define KNIT 1\nattribute float knitV;\nvarying float vKV,vEW;\n':'') + (fiber?'#define FIBER 1\nattribute float fTint;\nvarying float vFT;\n':'') + 'attribute vec4 paint;\nattribute float earW;\nuniform float uLen,uShells,uGrav;\nuniform vec2 uEar;\nuniform vec3 uEarP;\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
       + 'vec3 earRot(vec3 p,float a){ float c=cos(a),s=sin(a); vec2 d=p.xy-vec2(sign(p.x)*uEarP.x,uEarP.y); return vec3(vec2(sign(p.x)*uEarP.x,uEarP.y)+vec2(d.x*c-d.y*s,d.x*s+d.y*c),p.z); }\n'
       + sh.vertexShader
       .replace('#include <beginnormal_vertex>','vec3 objectNormal = vec3( normal );\nfloat ea = earW>0.0 ? uEar.y*earW : -uEar.x*earW;\nif(abs(ea)>0.0001){ float c=cos(ea),s=sin(ea); objectNormal.xy=vec2(objectNormal.x*c-objectNormal.y*s,objectNormal.x*s+objectNormal.y*c); }')
-      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;\nvDisp=transformed;\n#ifdef FIBER\nvFT=fTint;\n#endif');
-    sh.fragmentShader = (fiber?'#define FIBER 1\nvarying float vFT;\n':'') + 'uniform float uFelt,uFSc,uFW;\nuniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nuniform float uCarveK;\nuniform vec3 uCarveC[3]; uniform vec3 uCarveN[3]; uniform vec3 uCarveU[3]; uniform vec2 uCarveR[3]; uniform vec4 uCarveA[3];\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
+      .replace('#include <begin_vertex>','vH = uShells>1.0 ? float(gl_InstanceID)/(uShells-1.0) : 0.0;\nvPaint=paint; vObj=position; vONrm=normal;\nvec3 transformed = abs(ea)>0.0001 ? earRot(position,ea) : position;\nfloat hh=vH*uLen; transformed += objectNormal*hh - vec3(0.0,1.0,0.0)*uGrav*hh*vH;\nvDisp=transformed;\n#ifdef KNIT\nvKV=knitV; vEW=earW;\n#endif\n#ifdef FIBER\nvFT=fTint;\n#endif');
+    sh.fragmentShader = (fin.knit?'#define KNIT 1\nvarying float vKV,vEW;\nuniform float uKW,uKR,uKEo; uniform float uKC[64]; uniform vec3 uKEa,uKEb,uKEw;\n':'') + (fiber?'#define FIBER 1\nvarying float vFT;\n':'') + 'uniform float uFelt,uFSc,uFW;\nuniform float uLen,uShells,uDens,uRoot,uStray,uLenVar,uMottle,uClump,uCheeks,uAO,uRad;\nuniform vec3 cLight,cPink,cDark,cCheek;\nuniform float uCarveK;\nuniform vec3 uCarveC[3]; uniform vec3 uCarveN[3]; uniform vec3 uCarveU[3]; uniform vec2 uCarveR[3]; uniform vec4 uCarveA[3];\nvarying vec4 vPaint;\nvarying vec3 vObj;\nvarying vec3 vONrm;\nvarying vec3 vDisp;\nvarying float vH;\n'
       + 'float carve(){ float k=0.0; for(int i=0;i<3;i++){ if(float(i)>=uCarveK) break; vec3 d=vDisp-uCarveC[i], n=uCarveN[i], u=uCarveU[i], r=cross(u,n); if(dot(d,n)<-0.06) continue; vec2 q=vec2(dot(d,r),dot(d,u)); float e; vec4 A=uCarveA[i]; if(A.z>0.0){ q-=A.xy; float dd = q.y>=0.0 ? abs(length(q)-A.z) : min(length(q-vec2(A.z,0.0)),length(q+vec2(A.z,0.0))); e=dd/A.w; } else e=length(q/uCarveR[i]); k=max(k,1.0-smoothstep(0.92,1.3,e)); } return k; }\n'
       + 'uvec3 pcg3(uvec3 v){ v=v*1664525u+1013904223u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; v^=v>>16u; v.x+=v.y*v.z; v.y+=v.z*v.x; v.z+=v.x*v.y; return v; }\n'
       + 'vec3 h33(vec3 p){ return vec3(pcg3(uvec3(ivec3(floor(p))+ivec3(65536))))*(1.0/4294967295.0); }\n'
@@ -178,11 +214,17 @@ function furMaterial(fin,shareU,fiber){
       // felt: one short fibre per cell lying along the surface in a random direction, slightly bent, arching up in the
       // middle. h in [0,1] is the shell height; returns coverage, tint (per fibre) and how high the fibre arches here
       + 'float feltFib(vec3 q,vec3 n,float h,float w,float seed,inout float tint){ vec3 b=floor(q-0.5); float best=0.0; for(int i=0;i<8;i++){ vec3 c=b+vec3(float(i&1),float((i>>1)&1),float((i>>2)&1)); vec3 r=h33(c+seed), r2=h33(c+seed+17.0); vec3 t=r2-0.5; t-=dot(t,n)*n; float tl=length(t); if(tl<0.04) continue; t/=tl; vec3 bn=cross(n,t); vec3 d=q-(c+0.5+(r-0.5)*0.3); d-=dot(d,n)*n; float hl=0.55+0.3*r.z; float s=dot(d,t), u=s/hl; if(abs(u)>1.0) continue; float arch=(1.0-u*u)*(0.25+0.75*r.x*r.x); if(h>arch) continue; float off=dot(d,bn)-(r2.z-0.5)*0.5*(u*u-0.33)*hl; float wd=w*(1.0-0.45*h); float a=1.0-smoothstep(wd*0.55,wd,abs(off)); if(a>best){ best=a; tint=r2.x; } } return best; }\n'
+      // knit: (row, column) on the body from the crown distance + azimuth, on ears from their own axis. each row has a
+      // whole number of stitches so the pattern closes around. a stitch is a V of two plump twisted yarn legs
+      + (fin.knit ? '#ifdef KNIT\nfloat legH(vec2 c,vec2 a,vec2 b,float w,inout float ply,inout float lit){ vec2 ab=b-a; float t=clamp(dot(c-a,ab)/dot(ab,ab),0.0,1.0); vec2 d=c-(a+ab*t); float r=length(d)/(w*(0.75+0.25*sin(3.1416*t))); if(r>=1.0) return 0.0; float h=sqrt(1.0-r*r); float side=sign(d.x*ab.y-d.y*ab.x)*r; ply=sin((t*length(ab)*3.2-side*0.55)*6.2832); lit=dot(normalize(d+1e-5),vec2(-0.35,0.94))*r; return h; }\n'
+      + 'float knitH(out float ply,out float st,out float lit){ vec3 p=vObj; float v,phi,circ,u0=-1e9; lit=0.0; ply=0.0; st=0.5; if(abs(vEW)>0.5){ vec3 ax=uKEa, b=uKEb; if(p.x<0.0){ ax.x=-ax.x; b.x=-b.x; } vec3 d=p-b; v=dot(d,ax)-uKEo; vec3 e1=uKEw; if(p.x<0.0) e1.x=-e1.x; phi=0.0; circ=0.0; u0=dot(d,e1)/uKW; } else { v=vKV; phi=atan(p.x,p.z); circ=uKC[clamp(int(floor(v/uKR)),0,63)]; }\n'
+      + ' float rowf=v/uKR, N=max(6.0,6.0*floor(circ/(6.0*uKW)+0.5)), u=u0>-1e8?u0:(phi/6.2831853+0.5)*N; vec2 c=vec2(fract(u),fract(rowf)); st=h33(vec3(floor(u),floor(rowf),abs(vEW)>0.5?7.0:3.0)).x;\n'
+      + ' float p1=0.0,p2=0.0,l1=0.0,l2=0.0; float hl=legH(c,vec2(0.05,1.02),vec2(0.47,0.02),0.3,p1,l1), hr=legH(c,vec2(0.95,1.02),vec2(0.53,0.02),0.3,p2,l2); if(hl>=hr){ ply=p1; lit=l1; return hl; } ply=p2; lit=l2; return hr; }\n#endif\n' : '')
       + sh.fragmentShader
-      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH, fTint=0.5, fGap=1.0;\nmat3 fM=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774), fM2=mat3(0.0,0.8,0.6, 0.6,-0.48,0.64, 0.8,0.36,-0.48);\nfloat cv=uCarveK>0.0?carve():0.0;\n// fur is trimmed short around the eyes so shells never cover them\nif(vH>0.0 && vH>(1.0-cv)*1.02-0.02) discard;\nif(vH>0.0){ vec3 n=normalize(vONrm); if(uFelt>0.5){ vec3 nf=fM*n, qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float a1=feltFib(qf,nf,vH,uFW,0.0,fTint); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,vH,uFW*1.15,41.0,fTint); furA=max(a1,a2); if(furA<0.5) discard; } else { vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; } }\n#ifdef FIBER\nfTint=vFT; if(uCarveK>0.0 && carve()>0.02) discard;\n#else\nif(vH==0.0 && uFelt>0.5){ vec3 nf=fM*normalize(vONrm), qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float t0=0.5; float a1=feltFib(qf,nf,0.0,uFW*1.1,0.0,t0); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,0.0,uFW*1.25,41.0,t0); float t3=0.5; float a3=feltFib(qf*2.3+vec3(2.2,8.1,4.4),nf,0.0,uFW*1.3,73.0,t3); fGap=max(max(a1,a2),a3*0.7); fTint=max(a1,a2)>0.3?t0:t3; }\n#endif')
-      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nif(uFelt>0.5){ col*=1.0+uMottle*1.5*(fTint-0.5); if(fTint>0.93) col*=1.1; col*=mix(0.86,1.0,fGap); }\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\nfloat hh2=max(vH,cv*0.85);\n#ifdef FIBER\nhh2=1.0;\n#endif\ncol*=mix(uRoot,1.0,pow(clamp(hh2,0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
+      .replace('void main() {','void main() {\nfloat furA=1.0, tipT=vH, fTint=0.5, fGap=1.0;\nmat3 fM=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774), fM2=mat3(0.0,0.8,0.6, 0.6,-0.48,0.64, 0.8,0.36,-0.48);\nfloat cv=uCarveK>0.0?carve():0.0;\n// fur is trimmed short around the eyes so shells never cover them\nif(vH>0.0 && vH>(1.0-cv)*1.02-0.02) discard;\nfloat kH=1.0,kPly=0.0,kSt=0.5,kFz=0.0,kLit=0.0;\n#ifdef KNIT\nkH=knitH(kPly,kSt,kLit); if(vH>0.0){ if(kH*0.7<vH){ vec3 n=fM*normalize(vONrm); vec3 q=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uDens; float t1; furA=strand(q,n,vH,t1); if(furA<0.5 || h33(floor(q)+5.0).y>uStray) discard; kFz=1.0; } }\n#else\nif(vH>0.0){ vec3 n=normalize(vONrm); if(uFelt>0.5){ vec3 nf=fM*n, qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float a1=feltFib(qf,nf,vH,uFW,0.0,fTint); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,vH,uFW*1.15,41.0,fTint); furA=max(a1,a2); if(furA<0.5) discard; } else { vec3 q=(mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*vObj+vec3(0.3712,0.1131,0.5377))*uDens; n=mat3(0.8165,-0.4082,-0.4082, 0.0,0.7071,-0.7071, 0.5774,0.5774,0.5774)*n; if(uClump>0.5) q+= (vec3(vnoise(vObj*7.0),vnoise(vObj*7.0+7.1),vnoise(vObj*7.0+3.3))-0.5)*vH*9.0; float t1,t2; float a=strand(q,n,vH,t1); float b=strand(q*1.37+vec3(3.1,7.7,1.3),n,vH,t2); furA=max(a,b); tipT=max(t1,t2);\n if(uStray>0.0){ vec3 sc=floor(vObj*uDens*0.12); vec3 sr=h33(sc+11.0); if(sr.x<uStray*25.0){ float tt; furA=max(furA, strand(q*0.12,n,vH*0.22,tt)); } }\n if(furA<0.5) discard; } }\n#endif\n#ifdef FIBER\nfTint=vFT; if(uCarveK>0.0 && carve()>0.02) discard;\n#else\nif(vH==0.0 && uFelt>0.5){ vec3 nf=fM*normalize(vONrm), qf=(fM*vObj+vec3(0.3712,0.1131,0.5377))*uFSc; float t0=0.5; float a1=feltFib(qf,nf,0.0,uFW*1.1,0.0,t0); float a2=feltFib(qf*1.31+vec3(5.3,1.7,9.1),fM2*nf,0.0,uFW*1.25,41.0,t0); float t3=0.5; float a3=feltFib(qf*2.3+vec3(2.2,8.1,4.4),nf,0.0,uFW*1.3,73.0,t3); fGap=max(max(a1,a2),a3*0.7); fTint=max(a1,a2)>0.3?t0:t3; }\n#endif')
+      .replace('#include <color_fragment>','#include <color_fragment>\nvec3 col=diffuseColor.rgb; col=mix(col,cLight,vPaint.x); col=mix(col,cPink,vPaint.y); col=mix(col,cDark,vPaint.z); col=mix(col,cCheek,vPaint.w*uCheeks*0.8);\nif(uMottle>0.0) col*=1.0+uMottle*((vnoise(vObj*16.0)-0.5)*1.4+(vnoise(vObj*70.0)-0.5)*1.2);\nif(uFelt>0.5){ col*=1.0+uMottle*1.5*(fTint-0.5); if(fTint>0.93) col*=1.1; col*=mix(0.86,1.0,fGap); }\nfloat ao=mix(0.55,1.0,smoothstep(0.0,0.42,vObj.y))*uAO+(1.0-uAO);\nfloat hh2=max(vH,cv*0.85);\n#ifdef KNIT\nhh2 = kFz>0.5 ? 1.0 : max(vH/0.7, cv*0.85); col*=(0.96+0.08*kSt)*(0.93+0.07*kPly)*(1.0+0.16*kLit*(1.0-kFz)); if(vH==0.0) col*=mix(0.85,1.0,cv);\n#endif\n#ifdef FIBER\nhh2=1.0;\n#endif\ncol*=mix(uRoot,1.0,pow(clamp(hh2,0.0,1.0),0.7))*ao;\ndiffuseColor.rgb=col;');
   };
-  m.customProgramCacheKey=function(){ return fiber?'amfur3f':'amfur3'; };
+  m.customProgramCacheKey=function(){ return fiber?'amfur3f':(fin.knit?'amfur3k':'amfur3'); };
   return m;
 }
 /* ---------- shared renderer + environment ---------- */
@@ -226,9 +268,10 @@ function View(){
 }
 View.prototype.set=function(c){
   var C=this.cfg, rebuild=c.shape!==C.shape || c.material!==C.material, reeyes=rebuild || c.eyes!==C.eyes;
-  if(rebuild){ var self=this; if(this.mat) this.mat.dispose(); if(this.fibMat){ this.fibMat.dispose(); this.fibMat=null; } this.body.clear(); this.eyesG=null; var D=shapeData(c.shape), S=SH[c.shape], fin=FIN[c.material]||FIN.plush;
+  if(rebuild){ var self=this; if(this.mat) this.mat.dispose(); if(this.fibMat){ this.fibMat.dispose(); this.fibMat=null; } this.body.clear(); this.eyesG=null; var D=shapeData(c.shape), S=SH[c.shape], fin=FIN[c.material]||FIN.fluffy;
     this.D=D; this.S=S; this.fin=fin;
-    var mat=furMaterial(fin); this.mat=mat; var im=new THREE.InstancedMesh(D.geo,mat,fin.shells); var I=new THREE.Matrix4(); for(var i=0;i<fin.shells;i++) im.setMatrixAt(i,I);
+    var mat=furMaterial(fin); this.mat=mat;
+    if(fin.knit){ if(!D.knit) D.knit=knitField(D,S,fin.kr); var KU=mat.userData.U; KU.uKC.value.set(D.knit.cb); if(D.knit.ear){ KU.uKEa.value.copy(D.knit.ear.ax); KU.uKEw.value.copy(D.knit.ear.wd); KU.uKEb.value.copy(D.knit.ear.base); KU.uKEo.value=D.knit.ear.off; } } var im=new THREE.InstancedMesh(D.geo,mat,fin.shells); var I=new THREE.Matrix4(); for(var i=0;i<fin.shells;i++) im.setMatrixAt(i,I);
     im.castShadow=false; im.frustumCulled=false; this.body.add(im); this.fur=im;
     if(fin.fly){ var fk='fly:'+fin.fly; if(!D[fk]) D[fk]=flyaways(D,fin.fly,7+c.shape.length*131); this.fibMat=furMaterial(fin,mat.userData.U,true); var fm=new THREE.Mesh(D[fk],this.fibMat); fm.frustumCulled=false; this.body.add(fm); }
     // one cheap caster for the shadow map instead of every shell

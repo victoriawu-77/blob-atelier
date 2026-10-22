@@ -6,10 +6,10 @@ const path=require('path');
 const URL=process.env.APP||'file://'+path.resolve(__dirname,'../index.html');
 const CASES=[
   ['switch shape',  'shape=bunny&material=fluffy&color=sky&eyes=dot',     {shape:'cat'}],
-  ['switch shape+glasses','shape=dog&material=plush&color=butter&eyes=dot&acc=glasses', {shape:'bear'}],
+  ['switch shape+glasses','shape=dog&material=knit&color=butter&eyes=dot&acc=glasses', {shape:'bear'}],
   ['switch to frog','shape=hamster&material=fluffy&color=peach&eyes=dot&acc=sunglasses', {shape:'frog'}],
   ['switch to panda (white eyes)','shape=chick&material=felt&color=milk&eyes=dot', {shape:'panda'}],
-  ['switch finish', 'shape=dog&material=plush&color=butter&eyes=dot',     {material:'fluffy'}],
+  ['switch finish', 'shape=dog&material=knit&color=butter&eyes=dot',     {material:'fluffy'}],
   ['switch eye type','shape=bunny&material=fluffy&color=sky&eyes=dot&acc=beret', {eyes:'capsule'}],
 ];
 const READ = `(()=>{ const m=mascot, v=m.view3, B=v.body; B.updateMatrixWorld(true); const inv=B.matrixWorld.clone().invert(); const out={};

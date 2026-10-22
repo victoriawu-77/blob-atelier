@@ -337,7 +337,7 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
 (function(){
 var AM=window.AgentMascot, stage=document.getElementById('stage'); window.mascot=stage;
 var BG='#F4F3F0', $=function(id){ return document.getElementById(id); };
-var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',plush:'Plush',felt:'Felt',fluffy:'Fluffy'};
+var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',knit:'Knit',felt:'Felt',fluffy:'Fluffy'};
 var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine','cocoa','ink'];
 var SER=AM.SERIES;
 var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',state:'idle'};
@@ -396,14 +396,14 @@ var CURATED=[['mochi','peach','jelly','dot'],['bean','lilac','velvet','capsule']
 // animals: colours that read as the animal first, with a few playful pastels
 var FUR={ bunny:['milk','milk','bubblegum','lilac','sky','peach','butter'], cat:['tangerine','milk','ink','cocoa','butter','lilac','peach'], dog:['butter','cocoa','milk','peach','tangerine'],
   frog:['matcha','matcha','mint','sky','butter'], hamster:['peach','tangerine','butter','milk','cocoa'], bear:['cocoa','cocoa','butter','peach','milk','lilac'], panda:['milk','milk','bubblegum','mint'], chick:['butter','butter','peach','milk','tangerine'] };
-var CRITTERS=[['bunny','milk','plush'],['cat','tangerine','felt'],['dog','butter','plush'],['frog','matcha','felt'],['hamster','peach','plush'],['bear','cocoa','fluffy'],['panda','milk','plush'],['chick','butter','felt'],['bunny','bubblegum','knit'],['cat','ink','plush'],['bear','butter','felt'],['frog','mint','knit']];
+var CRITTERS=[['bunny','milk','knit'],['cat','tangerine','felt'],['dog','butter','knit'],['frog','matcha','felt'],['hamster','peach','knit'],['bear','cocoa','fluffy'],['panda','milk','knit'],['chick','butter','felt'],['bunny','bubblegum','knit'],['cat','ink','knit'],['bear','butter','felt'],['frog','mint','knit']];
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function randomize(){
   var c, an=state.series==='animals';
   for(var tries=0;tries<20;tries++){
     if(an){
       if(Math.random()<0.3){ var r=pick(CRITTERS); c={shape:r[0],color:r[1],material:r[2]}; }
-      else { c={shape:pick(SER.animals.shapes),material:pick(['fluffy','fluffy','plush','plush','felt'])}; c.color=pick(FUR[c.shape]); }
+      else { c={shape:pick(SER.animals.shapes),material:pick(['fluffy','fluffy','knit','knit','felt'])}; c.color=pick(FUR[c.shape]); }
       c.eyes = Math.random()<0.12 ? 'capsule':'dot';
       c.accessory = Math.random()<0.7 ? 'none' : pick(['beret','glasses','glasses','sunglasses']);
     } else {

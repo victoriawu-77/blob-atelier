@@ -9,10 +9,10 @@ var PALETTE = {
 };
 var STATES = ['idle','listening','thinking','talking','working','happy','done','error'];
 var MATERIALS = ['matte','soft','jelly','glass','clay','velvet'];
-var FABRICS = ['fluffy','plush','felt'];
+var FABRICS = ['fluffy','knit','felt'];
 var ACCESSORIES = ['none','beret','glasses','sunglasses']; // 3D animals only
 var ALL_MATERIALS = MATERIALS.concat(FABRICS);
-var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'fluffy', wool:'felt', knit:'felt', velour:'plush', fuzzy:'fluffy' };
+var ALIAS = { bun:'kitty', rabbit:'bunny', kitten:'cat', puppy:'dog', toad:'frog', teddy:'bear', chicken:'chick', fur:'fluffy', wool:'knit', yarn:'knit', plush:'knit', velour:'knit', fuzzy:'fluffy' };
 var SHAPES = ['mochi','bean','pebble','squircle','pill','drop','kitty','cloud'];
 var ANIMALS = ['bunny','cat','dog','frog','hamster','bear','panda','chick'];
 var SERIES = { blobs:{ shapes:SHAPES, materials:MATERIALS }, animals:{ shapes:ANIMALS, materials:FABRICS } };
@@ -306,10 +306,10 @@ class AgentMascot extends HTMLElement {
       this.gSkin.setAttribute('filter','url(#'+U+'-fuzz)');
     }
     if(FABRICS.indexOf(m)>=0){
-      M.lt=mk('path',{'class':'bp',fill:'none',stroke:'#fff','stroke-width':'30',opacity:m==='plush'?'.34':'.4',filter:B(13),transform:'translate(-9 -11)'});
+      M.lt=mk('path',{'class':'bp',fill:'none',stroke:'#fff','stroke-width':'30',opacity:m==='knit'?'.34':'.4',filter:B(13),transform:'translate(-9 -11)'});
       M.dk=mk('path',{'class':'bp',fill:'none','stroke-width':'34',opacity:'.3',filter:B(13),transform:'translate(9 13)'});
-      if(m!=='felt') M.sheen=mk('path',{'class':'bp',fill:'none','stroke-width':'10',opacity:'.5',filter:B(8)});
-      this.gSkin.setAttribute('filter','url(#'+U+'-'+(m==='felt'?'felt':'plush')+'F)');
+      if(m==='fluffy') M.sheen=mk('path',{'class':'bp',fill:'none','stroke-width':'10',opacity:'.5',filter:B(8)});
+      this.gSkin.setAttribute('filter','url(#'+U+'-'+(m==='felt'?'felt':m==='knit'?'knit':'plush')+'F)');
     }
     this.bps=Array.prototype.slice.call(this.svg.querySelectorAll('.bp'));
     this._partsMaterial(this.parts); this._partsMaterial(this.partsOld);
@@ -334,7 +334,18 @@ class AgentMascot extends HTMLElement {
     el('feGaussianBlur',{'in':'halo',stdDeviation:'.4',result:'halob'},f);
     el('feColorMatrix',{'in':'halob',type:'matrix',values:'1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .5 0',result:'haloA'},f);
     var mg=el('feMerge',{},f); el('feMergeNode',{'in':'haloA'},mg); el('feMergeNode',{'in':'body'},mg);
-    // plush: soft fur. a smooth velvety pile, clumped edge and a long soft fringe
+    // knit: yarn stitches. a stretched cellular bump in rows of little loops, lit from the top left, slightly lumpy edge
+    f=F('knitF','-10%');
+    el('feTurbulence',{type:'fractalNoise',baseFrequency:'.05',numOctaves:'1',seed:'4',result:'lump'},f);
+    el('feTurbulence',{type:'turbulence',baseFrequency:'.16 .24',numOctaves:'1',seed:'9',result:'st'},f);
+    el('feGaussianBlur',{'in':'st',stdDeviation:'.5',result:'sts'},f);
+    el('feDisplacementMap',{'in':'SourceGraphic',in2:'lump',scale:'4',xChannelSelector:'R',yChannelSelector:'G',result:'s0'},f);
+    el('feDisplacementMap',{'in':'s0',in2:'st',scale:'2.5',xChannelSelector:'R',yChannelSelector:'G',result:'s1'},f);
+    light(f,'sts','2.2','235','55','lit');
+    el('feComposite',{'in':'s1',in2:'lit',operator:'arithmetic',k1:'.6',k2:'.46',k3:'0',k4:'0',result:'tx'},f);
+    el('feComposite',{'in':'tx',in2:'s1',operator:'in',result:'body'},f);
+    mg=el('feMerge',{},f); el('feMergeNode',{'in':'body'},mg);
+    // fluffy (filter id plushF): soft fur. a smooth velvety pile, clumped edge and a long soft fringe
     f=F('plushF','-15%');
     el('feTurbulence',{type:'fractalNoise',baseFrequency:'.14',numOctaves:'2',seed:'5',result:'clump'},f);
     el('feTurbulence',{type:'fractalNoise',baseFrequency:'.9 .35',numOctaves:'2',seed:'2',result:'pile'},f);
