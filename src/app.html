@@ -75,6 +75,16 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .gh-arr{width:11px;height:11px;flex:none;color:#9A9AA0;margin-left:1px;transition:transform .25s var(--ease),color .2s}
 .gh:hover .gh-arr{transform:translate(1.5px,-1.5px);color:#6E6E73}
 #stage{position:absolute;left:50%;top:46%;width:min(62vh,58vw);height:min(62vh,58vw);transform:translate(-50%,-50%)}
+.series{position:absolute;left:50%;top:20px;z-index:3;transform:translateX(-50%);display:flex;padding:4px;border-radius:999px;background:rgba(255,255,255,.72);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 8px 30px rgba(30,20,60,.08),0 0 0 1px rgba(0,0,0,.05)}
+.series button{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;height:32px;border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:540;letter-spacing:-.005em;color:#55555B;padding:0 15px 0 12px;border-radius:999px;cursor:pointer;transition:color .3s var(--ease)}
+.series button:hover{color:var(--ink)}
+.series button.on{color:#fff}
+.series button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.series svg{width:17px;height:17px;flex:none;transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.series button.on svg{transform:scale(1.08) rotate(-4deg)}
+.series .pill{position:absolute;z-index:0;left:0;top:4px;height:32px;width:0;border-radius:999px;background:var(--ink);box-shadow:0 4px 12px rgba(29,29,31,.18);transition:transform .5s cubic-bezier(.3,1.25,.4,1),width .5s cubic-bezier(.3,1.25,.4,1)}
+.series.init .pill{transition:none}
+@media (min-width:821px) and (max-width:1259px){.series{top:76px}}
 .states{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);display:flex;gap:2px;padding:5px;border-radius:999px;background:rgba(255,255,255,.72);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 8px 30px rgba(30,20,60,.08),0 0 0 1px rgba(0,0,0,.04)}
 .states button{border:0;background:transparent;font:inherit;font-size:13px;color:#55555B;padding:7px 14px;border-radius:999px;cursor:pointer;transition:background .25s var(--ease),color .25s var(--ease)}
 .states button:hover{color:var(--ink)}
@@ -93,6 +103,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .sw{display:flex;flex-wrap:wrap;gap:10px}
 .sw button{width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);transition:transform .2s var(--ease),box-shadow .2s}
 .sw button:hover{transform:scale(1.1)}
+.accsw{margin-top:12px}
+.accsw[hidden]{display:none}
 .sw button.on{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),0 0 0 2.5px #fff,0 0 0 4px var(--ink)}
 .row{display:flex;gap:10px;align-items:center}
 .seg{display:inline-flex;background:var(--tile);border-radius:10px;padding:3px}
@@ -108,6 +120,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 .ghost:hover{background:#ECECEF}
 .ex{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .ex .btn{padding:9px 0}
+.ex .btn.off{opacity:.38;cursor:not-allowed}
+.sec[hidden]{display:none}
 .embed{width:100%;margin-top:8px}
 .api{font:11.5px/1.5 ui-monospace,Menlo,monospace;color:var(--mute);margin-top:auto;padding-top:6px}
 .toast{position:fixed;left:calc(50% - 180px);top:24px;transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;transition:all .35s var(--ease);pointer-events:none;z-index:9}
@@ -169,6 +183,11 @@ html[data-theme=dark] .gh:focus-visible{outline-color:#EDEBE6}
 html[data-theme=dark] .gh-arr{color:#7E7C76}
 html[data-theme=dark] .gh:hover .gh-arr{color:#A4A29C}
 html[data-theme=dark] .states{background:rgba(36,36,34,.74);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 30px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06)}
+html[data-theme=dark] .series{background:rgba(36,36,34,.74);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 30px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.07)}
+html[data-theme=dark] .series button{color:#A4A29C}
+html[data-theme=dark] .series button:hover{color:#EDEBE6}
+html[data-theme=dark] .series button.on{color:#141413}
+html[data-theme=dark] .series .pill{background:#EDEBE6;box-shadow:0 4px 14px rgba(0,0,0,.35)}
 html[data-theme=dark] .states button{color:#A4A29C}
 html[data-theme=dark] .states button:hover{color:#EDEBE6}
 html[data-theme=dark] .states button.on{background:#EDEBE6;color:#141413}
@@ -212,6 +231,9 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
   .brand{left:20px;top:24px}
   .topbar{right:16px;top:18px;gap:8px}
   .rnd{min-height:40px}
+  .series{position:relative;left:auto;top:auto;transform:none;margin:0 0 2px}
+  .series button{height:36px;font-size:14px;padding:0 17px 0 14px}
+  .series .pill{height:36px}
   #stage{position:relative;left:auto;top:auto;transform:none;width:min(80vw,44vh,380px);height:min(80vw,44vh,380px);flex:none;margin:6px 0 4px}
   .states{position:relative;left:auto;bottom:auto;transform:none;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%;max-width:440px;border-radius:22px;padding:5px;margin-top:14px}
   .states button{min-height:40px;padding:8px 4px;font-size:13.5px}
@@ -270,6 +292,10 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
       <button class="share" id="share" type="button" aria-label="Share" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13.5a4.5 4.5 0 0 0 6.4.4l2.7-2.7a4.5 4.5 0 0 0-6.4-6.4l-1.3 1.3"/><path d="M14 10.5a4.5 4.5 0 0 0-6.4-.4l-2.7 2.7a4.5 4.5 0 0 0 6.4 6.4l1.3-1.3"/></svg><i class="tip" id="shareTip" role="status" aria-live="polite"></i></button>
       <button class="rnd" id="rand" type="button" aria-label="Randomize with taste" title="Randomize with taste (R)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" stroke="currentColor" stroke-width="1.9"/><circle cx="8.6" cy="8.6" r="1.45" fill="currentColor"/><circle cx="15.4" cy="15.4" r="1.45" fill="currentColor"/><circle cx="12" cy="12" r="1.45" fill="currentColor"/></svg><span class="l-full">Randomize with taste</span><span class="l-short">Randomize</span></button>
     </div>
+    <div class="series init" id="series" role="tablist" aria-label="Series"><i class="pill" aria-hidden="true"></i>
+      <button type="button" role="tab" data-v="blobs" aria-selected="true"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.6 15.2C2.6 8.6 5.7 4.2 10 4.2s7.4 4.4 7.4 11c0 .5-.4.9-.9.9H3.5c-.5 0-.9-.4-.9-.9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.6" cy="11.3" r="1.15" fill="currentColor"/><circle cx="12.4" cy="11.3" r="1.15" fill="currentColor"/></svg>Blobs</button>
+      <button type="button" role="tab" data-v="animals" aria-selected="false"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7.3 7.9C6.2 5.6 5.8 2.9 6.9 2.2c1.2-.7 2.2 2.1 2.3 5M12.7 7.9c1.1-2.3 1.5-5 .4-5.7-1.2-.7-2.2 2.1-2.3 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.4 15.3c0-4.4 2.9-7.5 6.6-7.5s6.6 3.1 6.6 7.5c0 .5-.4.8-.9.8H4.3c-.5 0-.9-.3-.9-.8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.7" cy="12.4" r="1.05" fill="currentColor"/><circle cx="12.3" cy="12.4" r="1.05" fill="currentColor"/></svg>Animals</button>
+    </div>
     <agent-mascot id="stage" seed="11"></agent-mascot>
     <nav class="states" id="states"></nav>
     <div class="credit">
@@ -290,8 +316,10 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
     <section class="sec"><h3>Color</h3><div class="sw" id="colors"></div></section>
     <section class="sec"><h3>Eyes</h3><div class="row"><div class="seg" id="eyes"><button data-v="dot">Dot</button><button data-v="capsule">Capsule</button></div>
       <label class="toggle" id="cheeks"><i></i>Blush</label></div></section>
+    <section class="sec" id="accSec" hidden><h3>Accessory</h3><div class="seg" id="acc"><button data-v="none">None</button><button data-v="beret">Beret</button><button data-v="glasses">Glasses</button><button data-v="sunglasses">Shades</button></div>
+      <div class="sw accsw" id="accColors" hidden></div></section>
     <section class="sec"><h3>Export</h3>
-      <div class="ex"><button class="btn ghost" data-x="svg">SVG</button><button class="btn ghost" data-x="png">PNG</button><button class="btn ghost" data-x="gif">GIF</button><button class="btn ghost" data-x="webm">WebM</button></div>
+      <div class="ex"><button class="btn ghost" data-x="svg" id="xSvg">SVG</button><button class="btn ghost" data-x="png">PNG</button><button class="btn ghost" data-x="gif">GIF</button><button class="btn ghost" data-x="webm">WebM</button></div>
       <button class="btn ghost embed" id="embedBtn" aria-haspopup="dialog">&lt;/&gt; Embed as web component</button>
     </section>
     <div class="api">mascot.setState('thinking')</div>
@@ -299,7 +327,7 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
 </div>
 <div class="mb" id="embedModal" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="embedTitle">
-    <div class="mh"><agent-mascot id="embedPrev" seed="5"></agent-mascot><div><h2 id="embedTitle">Embed your mascot</h2><p>A self-contained &lt;agent-mascot&gt; that works in any page.</p></div></div>
+    <div class="mh"><agent-mascot id="embedPrev" seed="5" still></agent-mascot><div><h2 id="embedTitle">Embed your mascot</h2><p>A self-contained &lt;agent-mascot&gt; that works in any page.</p></div></div>
     <button class="mx" id="embedClose" aria-label="Close"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg></button>
     <div class="tabs" role="tablist"><button role="tab" data-t="single" class="on" aria-selected="true">Single snippet</button><button role="tab" data-t="file" aria-selected="false">Script file</button></div>
     <div class="cb"><pre id="snipCode"></pre><button class="cp" data-copy="snip">Copy</button><div class="note" id="snipNote" hidden>Or load it straight from <a href="agent-mascot.js" target="_blank" rel="noopener">victoriawu-77.github.io/blob-atelier/agent-mascot.js</a></div></div>
@@ -315,41 +343,85 @@ html[data-theme=dark] .cb .note a{color:#A4A29C}
 (function(){
 var AM=window.AgentMascot, stage=document.getElementById('stage'); window.mascot=stage;
 var BG='#F4F3F0', $=function(id){ return document.getElementById(id); };
-var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet'};
+var LABEL={matte:'Matte',soft:'Soft',jelly:'Jelly',glass:'Glass',clay:'Clay',velvet:'Velvet',knit:'Knit',felt:'Felt',fluffy:'Fluffy'};
 var COLORS=['milk','peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine','cocoa','ink'];
-var state={shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,state:'idle'};
+var SER=AM.SERIES;
+var state={series:'blobs',shape:'kitty',color:'bubblegum',material:'jelly',eyes:'dot',cheeks:true,accessory:'none',accColor:'ink',state:'idle'};
+// each series remembers its own look, so switching back and forth is lossless
+var MEM={ blobs:{shape:'kitty',material:'jelly',color:'bubblegum'}, animals:{shape:'bunny',material:'fluffy',color:'sky'} };
+function seriesOf(shape){ return AM.seriesOf(shape); }
+function fixSeries(){ state.series=seriesOf(state.shape); var S=SER[state.series]; if(S.materials.indexOf(state.material)<0) state.material=MEM[state.series].material; }
 // hash
-function readHash(){ var h=location.hash.slice(1); if(!h) return; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; }); if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; }
-function writeHash(){ var h='shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
+function readHash(){ var h=location.hash.slice(1); if(!h) return; var want=null; h.split('&').forEach(function(kv){ var p=kv.split('='), k=decodeURIComponent(p[0]), v=decodeURIComponent(p[1]||''); if(k==='series'){ if(SER[v]) want=v; return; } if(k==='acc') k='accessory'; if(k in state) state[k]= k==='cheeks' ? v!=='0' : v; });
+  if(AM.ACCESSORIES.indexOf(state.accessory)<0) state.accessory='none';
+  if(!AM.ACC_COLORS[state.accColor]) state.accColor='ink';
+  if(AM.ALIASES[state.shape]) state.shape=AM.ALIASES[state.shape]; if(AM.ALIASES[state.material]) state.material=AM.ALIASES[state.material];
+  if(SER.blobs.shapes.indexOf(state.shape)<0 && SER.animals.shapes.indexOf(state.shape)<0) state.shape = want ? MEM[want].shape : 'kitty';
+  if(want && seriesOf(state.shape)!==want) state.shape=MEM[want].shape;
+  fixSeries(); }
+function writeHash(){ var h='series='+state.series+'&shape='+state.shape+'&color='+encodeURIComponent(state.color)+'&material='+state.material+'&eyes='+state.eyes+'&cheeks='+(state.cheeks?1:0)+(state.series==='animals'&&state.accessory!=='none'?'&acc='+state.accessory+(state.accColor!=='ink'?'&accColor='+state.accColor:''):'')+(state.state!=='idle'?'&state='+state.state:''); history.replaceState(null,'','#'+h); }
 // build UI
-AM.SHAPES.forEach(function(s){ var b=document.createElement('button'); b.className='tile'; b.dataset.v=s; b.title=s; b.innerHTML='<agent-mascot still shape="'+s+'"></agent-mascot><small>'+s+'</small>'; b.onclick=function(){ set({shape:s}); }; $('shapes').appendChild(b); });
-AM.MATERIALS.forEach(function(m){ var b=document.createElement('button'); b.className='tile'; b.dataset.v=m; b.innerHTML='<agent-mascot still material="'+m+'"></agent-mascot><small>'+LABEL[m]+'</small>'; b.onclick=function(){ set({material:m}); }; $('materials').appendChild(b); });
+var built=null;
+function buildTiles(){
+  if(built===state.series) return; built=state.series; var S=SER[state.series];
+  $('shapes').textContent=''; $('materials').textContent='';
+  S.shapes.forEach(function(s){ var b=document.createElement('button'); b.className='tile'; b.dataset.v=s; b.title=s; b.innerHTML='<agent-mascot still shape="'+s+'" material="'+state.material+'" color="'+state.color+'"></agent-mascot><small>'+s+'</small>'; b.onclick=function(){ set({shape:s}); }; $('shapes').appendChild(b); });
+  S.materials.forEach(function(m){ var b=document.createElement('button'); b.className='tile'; b.dataset.v=m; b.innerHTML='<agent-mascot still material="'+m+'" shape="'+state.shape+'" color="'+state.color+'"></agent-mascot><small>'+LABEL[m]+'</small>'; b.onclick=function(){ set({material:m}); }; $('materials').appendChild(b); });
+}
 COLORS.forEach(function(c){ var b=document.createElement('button'); b.dataset.v=c; b.title=c; b.style.background=AM.PALETTE[c]; b.onclick=function(){ set({color:c}); }; $('colors').appendChild(b); });
 AM.STATES.forEach(function(s){ var b=document.createElement('button'); b.dataset.v=s; b.textContent=s; b.onclick=function(){ set({state:s}); }; $('states').appendChild(b); });
 Array.prototype.forEach.call($('eyes').children,function(b){ b.onclick=function(){ set({eyes:b.dataset.v}); }; });
+Object.keys(AM.ACC_COLORS).forEach(function(c){ var b=document.createElement('button'); b.dataset.v=c; b.title=c==='ink'?'ink (default)':c; b.setAttribute('aria-label','Accessory colour '+c); b.style.background=AM.ACC_COLORS[c]; b.onclick=function(){ set({accColor:c}); stage.poke(); }; $('accColors').appendChild(b); });
+Array.prototype.forEach.call($('acc').children,function(b){ b.onclick=function(){ set({accessory:b.dataset.v}); stage.poke(); }; });
 $('cheeks').onclick=function(){ set({cheeks:!state.cheeks}); };
+Array.prototype.forEach.call($('series').querySelectorAll('button'),function(b){ b.onclick=function(){ switchSeries(b.dataset.v); };
+  b.onkeydown=function(e){ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); var v=state.series==='blobs'?'animals':'blobs'; switchSeries(v); $('series').querySelector('[data-v='+v+']').focus(); } }; });
+function switchSeries(v){ if(!SER[v] || v===state.series) return; var m=MEM[v]; set({shape:m.shape, material:m.material, color:m.color}); stage.poke(); }
+function markSeries(){ var box=$('series'), pill=box.querySelector('.pill');
+  Array.prototype.forEach.call(box.querySelectorAll('button'),function(b){ var on=b.dataset.v===state.series; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false'); b.tabIndex=on?0:-1;
+    if(on){ pill.style.width=b.offsetWidth+'px'; pill.style.transform='translateX('+b.offsetLeft+'px)'; } }); }
+window.addEventListener('resize',markSeries);
 function mark(id,v){ Array.prototype.forEach.call($(id).children,function(b){ b.classList.toggle('on',b.dataset.v===v); }); }
-function sync(){
-  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes);
+function syncSvgBtn(){ var b=$('xSvg'), a=state.series==='animals' && AM.supports3D(); b.classList.toggle('off',a); b.title=a?'Animals are rendered in 3D (WebGL), so SVG export is off. Use PNG, GIF or WebM.':'Vector SVG'; b.setAttribute('aria-disabled',a?'true':'false'); }
+function sync(){ syncSvgBtn();
+  buildTiles(); markSeries();
+  mark('shapes',state.shape); mark('materials',state.material); mark('colors',state.color); mark('states',state.state); mark('eyes',state.eyes); mark('acc',state.accessory); mark('accColors',state.accColor); $('accSec').hidden=state.series!=='animals'; $('accColors').hidden=state.accessory==='none';
   $('cheeks').classList.toggle('on',state.cheeks);
   document.querySelectorAll('#shapes agent-mascot').forEach(function(m){ m.setConfig({color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks}); });
   document.querySelectorAll('#materials agent-mascot').forEach(function(m){ m.setConfig({color:state.color,shape:state.shape,eyes:state.eyes,cheeks:state.cheeks}); });
   if(modalOpen) renderEmbed();
 }
-function set(p){ for(var k in p) state[k]=p[k]; stage.setConfig(p); sync(); writeHash(); }
+function stageAcc(){ return state.series==='animals'?state.accessory:'none'; }
+function stageAccColor(){ return stageAcc()!=='none'?state.accColor:'ink'; }
+function set(p){ for(var k in p) state[k]=p[k];
+  if(p.shape){ var ns=seriesOf(state.shape); if(ns!==state.series){ state.series=ns; if(!p.material && SER[ns].materials.indexOf(state.material)<0) state.material=MEM[ns].material; } }
+  MEM[state.series]={shape:state.shape, material:state.material, color:state.color};
+  stage.setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),accColor:stageAccColor(),state:state.state}); sync(); writeHash(); }
 stage.addEventListener('change',function(e){ var c=e.detail; if(c.state!==state.state){ state.state=c.state; mark('states',state.state); writeHash(); } });
 // taste
 var TASTE={ matte:COLORS, soft:COLORS, jelly:['peach','butter','matcha','mint','sky','lilac','bubblegum','tangerine'], glass:['sky','lilac','mint','bubblegum','peach','butter'],
   clay:['milk','peach','butter','matcha','sky','lilac','cocoa','tangerine'], velvet:['peach','bubblegum','lilac','matcha','cocoa','tangerine','butter','sky','ink'] };
 var CURATED=[['mochi','peach','jelly','dot'],['bean','lilac','velvet','capsule'],['pebble','milk','clay','dot'],['squircle','ink','matte','capsule'],['pill','sky','glass','capsule'],['drop','mint','soft','dot'],['kitty','butter','clay','dot'],['cloud','bubblegum','jelly','dot'],['mochi','matcha','velvet','dot'],['cloud','sky','glass','dot']];
+// animals: colours that read as the animal first, with a few playful pastels
+var FUR={ bunny:['milk','milk','bubblegum','lilac','sky','peach','butter'], cat:['tangerine','milk','ink','cocoa','butter','lilac','peach'], dog:['butter','cocoa','milk','peach','tangerine'],
+  frog:['matcha','matcha','mint','sky','butter'], hamster:['peach','tangerine','butter','milk','cocoa'], bear:['cocoa','cocoa','butter','peach','milk','lilac'], panda:['milk','milk','bubblegum','mint'], chick:['butter','butter','peach','milk','tangerine'] };
+var CRITTERS=[['bunny','milk','knit'],['cat','tangerine','felt'],['dog','butter','knit'],['frog','matcha','felt'],['hamster','peach','knit'],['bear','cocoa','fluffy'],['panda','milk','knit'],['chick','butter','felt'],['bunny','bubblegum','knit'],['cat','ink','knit'],['bear','butter','felt'],['frog','mint','knit']];
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function randomize(){
-  var c;
+  var c, an=state.series==='animals';
   for(var tries=0;tries<20;tries++){
-    if(Math.random()<0.3){ var q=pick(CURATED); c={shape:q[0],color:q[1],material:q[2],eyes:q[3]}; }
-    else { var m=pick(['jelly','jelly','soft','clay','velvet','glass','matte','soft']); c={material:m,color:pick(TASTE[m]),shape:pick(AM.SHAPES)};
-      c.eyes = (['pill','bean','drop'].indexOf(c.shape)>=0 ? Math.random()<0.7 : Math.random()<0.25) ? 'capsule':'dot'; }
-    c.cheeks = ['ink','cocoa'].indexOf(c.color)<0 && Math.random()<0.7;
+    if(an){
+      if(Math.random()<0.3){ var r=pick(CRITTERS); c={shape:r[0],color:r[1],material:r[2]}; }
+      else { c={shape:pick(SER.animals.shapes),material:pick(['fluffy','fluffy','knit','knit','felt'])}; c.color=pick(FUR[c.shape]); }
+      c.eyes = Math.random()<0.12 ? 'capsule':'dot';
+      c.accessory = Math.random()<0.7 ? 'none' : pick(['beret','glasses','glasses','sunglasses']);
+      c.accColor = c.accessory!=='none' && Math.random()<0.55 ? pick(Object.keys(AM.ACC_COLORS).slice(1)) : 'ink';
+    } else {
+      if(Math.random()<0.3){ var q=pick(CURATED); c={shape:q[0],color:q[1],material:q[2],eyes:q[3]}; }
+      else { var m=pick(['jelly','jelly','soft','clay','velvet','glass','matte','soft']); c={material:m,color:pick(TASTE[m]),shape:pick(SER.blobs.shapes)};
+        c.eyes = (['pill','bean','drop'].indexOf(c.shape)>=0 ? Math.random()<0.7 : Math.random()<0.25) ? 'capsule':'dot'; }
+    }
+    c.cheeks = ['ink','cocoa'].indexOf(c.color)<0 ? Math.random()<(an?0.85:0.7) : an && Math.random()<0.4;
     if(c.shape!==state.shape || c.color!==state.color || c.material!==state.material) break;
   }
   set(c); stage.poke();
@@ -375,15 +447,15 @@ document.addEventListener('keydown',function(e){ if(e.target.tagName==='INPUT'||
 // toast
 var tt; function toast(s,ms){ var t=$('toast'); t.textContent=s; t.classList.add('show'); clearTimeout(tt); if(ms!==0) tt=setTimeout(function(){ t.classList.remove('show'); },ms||1600); }
 // export
-function fname(ext){ return 'blob-'+state.shape+'-'+state.color.replace('#','')+'-'+state.material+'.'+ext; }
+function fname(ext){ return (state.series==='animals'?'critter-':'blob-')+state.shape+'-'+state.color.replace('#','')+'-'+state.material+'.'+ext; }
 function download(blob,name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); }
 function svgImg(str){ return new Promise(function(res,rej){ var i=new Image(); i.onload=function(){ res(i); }; i.onerror=rej; i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(str); }); }
 function toBlob(cv,type,q){ return new Promise(function(r){ cv.toBlob(r,type,q); }); }
 var EX={
   svg: async function(){ return new Blob([stage.toSVGString(1024)],{type:'image/svg+xml'}); },
-  png: async function(size){ size=size||1024; var img=await svgImg(stage.toSVGString(size)); var cv=document.createElement('canvas'); cv.width=cv.height=size; cv.getContext('2d').drawImage(img,0,0,size,size); return toBlob(cv,'image/png'); },
+  png: async function(size){ return toBlob(await stage.renderFrame(size||1024),'image/png'); },
   frames: async function(fps,secs,size,each){ var was=AM.manual; AM.manual=true; var n=Math.round(fps*secs);
-    try{ for(var i=0;i<n;i++){ stage.step(1/fps); var img=await svgImg(stage.toSVGString(size,BG)); await each(img,i,n); } } finally { AM.manual=was; } },
+    try{ for(var i=0;i<n;i++){ stage.step(1/fps); var img=await stage.renderFrame(size); await each(img,i,n); } } finally { AM.manual=was; } },
   gif: async function(opts){ opts=opts||{}; var size=opts.size||480, fps=opts.fps||25, secs=opts.secs||3.2;
     var G=await import('https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js'); var enc=G.GIFEncoder(); var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d',{willReadFrequently:true});
     await EX.frames(fps,secs,size,function(img,i,n){ ctx.fillStyle=BG; ctx.fillRect(0,0,size,size); ctx.drawImage(img,0,0,size,size); var d=ctx.getImageData(0,0,size,size).data; var pal=G.quantize(d,256); var idx=G.applyPalette(d,pal); enc.writeFrame(idx,size,size,{palette:pal,delay:Math.round(1000/fps)}); if(opts.progress) opts.progress(i/n); });
@@ -398,7 +470,7 @@ var EX={
     rec.stop(); await done; return new Blob(chunks,{type:'video/webm'}); }
 };
 window.__exports=EX;
-document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async function(){ var x=b.dataset.x; b.disabled=true; try{
+document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async function(){ var x=b.dataset.x; if(b.classList.contains('off')){ toast('Animals are 3D, so SVG export is off. Try PNG, GIF or WebM.'); return; } b.disabled=true; try{
   if(x==='svg') download(await EX.svg(),fname('svg'));
   if(x==='png') download(await EX.png(),fname('png'));
   if(x==='gif'){ toast('Rendering GIF…',0); download(await EX.gif({progress:function(p){ toast('Rendering GIF… '+Math.round(p*100)+'%',0); }}),fname('gif')); }
@@ -406,7 +478,7 @@ document.querySelectorAll('[data-x]').forEach(function(b){ b.onclick=async funct
   toast('Exported '+x.toUpperCase()); } catch(err){ console.warn(err); toast('Export failed: '+(err&&err.message||err)); } b.disabled=false; }; });
 // embed
 var SRC=$('agent-mascot-src').textContent.trim(), SRC_KB=(new Blob([SRC]).size/1024).toFixed(1), HOSTED='https://victoriawu-77.github.io/blob-atelier/agent-mascot.js';
-function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false'],['state',c.state]]; }
+function attrs(){ var c=state; return [['shape',c.shape],['color',c.color],['material',c.material],['eyes',c.eyes],['cheeks',c.cheeks?'true':'false']].concat(stageAcc()!=='none'?[['accessory',stageAcc()]].concat(stageAccColor()!=='ink'?[['acc-color',stageAccColor()]]:[]):[]).concat([['state',c.state]]); }
 function tag(){ return '<agent-mascot '+attrs().map(function(a){ return a[0]+'="'+a[1]+'"'; }).join(' ')+'></agent-mascot>'; }
 function standalone(){ return '<script>\n'+SRC+'\n<\/script>\n'+tag(); }
 function scriptTag(){ return '<script src="agent-mascot.js"><\/script>\n'+tag(); }
@@ -423,12 +495,12 @@ function renderEmbed(){
     ? sp('t','<script>')+sp('c','/* agent-mascot v1 · '+SRC_KB+' KB, no dependencies · full source is included when you copy */')+sp('t','<\/script>')+'\n'+hTag()
     : sp('t','<script')+' '+sp('a','src')+'='+sp('s','"agent-mascot.js"')+sp('t','><\/script>')+'\n'+hTag();
   $('snipNote').hidden = tab!=='file';
-  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,state:state.state});
+  $('embedPrev').setConfig({shape:state.shape,color:state.color,material:state.material,eyes:state.eyes,cheeks:state.cheeks,accessory:stageAcc(),accColor:stageAccColor(),state:state.state});
   document.querySelectorAll('.tabs button').forEach(function(b){ var on=b.dataset.t===tab; b.classList.toggle('on',on); b.setAttribute('aria-selected',on?'true':'false'); });
 }
 $('apiCode').innerHTML=hJS(API); $('jsMeta').textContent=SRC_KB+' KB · works offline, no build step';
-function openEmbed(){ modalOpen=true; lastFocus=document.activeElement; renderEmbed(); var mb=$('embedModal'); mb.classList.add('open'); mb.setAttribute('aria-hidden','false'); document.body.classList.add('lock'); setTimeout(function(){ $('embedClose').focus({preventScroll:true}); },30); }
-function closeEmbed(){ if(!modalOpen) return; modalOpen=false; var mb=$('embedModal'); mb.classList.remove('open'); mb.setAttribute('aria-hidden','true'); document.body.classList.remove('lock'); if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
+function openEmbed(){ modalOpen=true; $('embedPrev').removeAttribute('still'); lastFocus=document.activeElement; renderEmbed(); var mb=$('embedModal'); mb.classList.add('open'); mb.setAttribute('aria-hidden','false'); document.body.classList.add('lock'); setTimeout(function(){ $('embedClose').focus({preventScroll:true}); },30); }
+function closeEmbed(){ if(!modalOpen) return; modalOpen=false; setTimeout(function(){ if(!modalOpen) $('embedPrev').setAttribute('still',''); },400); var mb=$('embedModal'); mb.classList.remove('open'); mb.setAttribute('aria-hidden','true'); document.body.classList.remove('lock'); if(lastFocus&&lastFocus.focus) lastFocus.focus({preventScroll:true}); }
 window.__embed.open=openEmbed; window.__embed.close=closeEmbed;
 $('embedBtn').onclick=openEmbed; $('embedClose').onclick=closeEmbed;
 $('embedModal').addEventListener('click',function(e){ if(e.target===this) closeEmbed(); });
@@ -439,8 +511,10 @@ document.querySelectorAll('.cp').forEach(function(b){ var tm; b.onclick=function
   copyText(txt).then(function(){ b.textContent='Copied'; b.classList.add('ok'); clearTimeout(tm); tm=setTimeout(function(){ b.textContent='Copy'; b.classList.remove('ok'); },1400); }); }; });
 $('dlJs').onclick=function(){ download(new Blob([SRC],{type:'text/javascript'}),'agent-mascot.js'); };
 // boot
-readHash(); stage.setConfig(state); sync(); writeHash();
-window.addEventListener('hashchange',function(){ readHash(); stage.setConfig(state); sync(); });
+readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc(),accColor:stageAccColor()})); sync(); writeHash();
+requestAnimationFrame(function(){ markSeries(); requestAnimationFrame(function(){ $('series').classList.remove('init'); }); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(markSeries);
+window.addEventListener('hashchange',function(){ readHash(); MEM[state.series]={shape:state.shape,material:state.material,color:state.color}; stage.setConfig(Object.assign({},state,{accessory:stageAcc(),accColor:stageAccColor()})); sync(); writeHash(); });
 })();
 </script>
 </body>
