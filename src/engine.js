@@ -621,15 +621,19 @@ class AgentMascot extends HTMLElement {
     var hex=rgb2hex(this.col), key=[C.shape,C.material,C.eyes,C.cheeks,C.accessory,C.accColor,hex,this._shOp].join('|');
     if(key!==this._k3){ this._k3=key; this.view3.set({shape:C.shape, material:FABRICS.indexOf(C.material)>=0?C.material:'fluffy', color:hex, eyes:C.eyes, cheeks:C.cheeks, acc:C.accessory, accColor:C.accColor==='ink'?'':(ACC_COLORS[C.accColor]||C.accColor), shadowOp:this._shOp}); }
     var k=this.k, m=clamp(k.morph,0,1.15), pop=lerp(0.84,1,m);
-    this.view3.pose({ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
-      lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy });
+    var P={ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
+      lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy };
+    this.view3.pose(P);
+    // how fast the pose is changing: following the pointer, glancing around, blinking, hops and squash all move it quickly,
+    // breathing alone stays well under 0.06/s
+    var mv=0, L=this._p3; if(L && dt>0) for(var q in P) if(q!=='mode') mv=Math.max(mv,Math.abs(P[q]-L[q])/dt); this._p3=P;
     // adaptive resolution: if a slow GPU can't keep up for a couple of seconds, render fewer pixels (never below 1x)
     var dq0=AgentMascot.lite?1.5:2;
     if(!o.still && AgentMascot.adaptive && dt>0){ this._ema=(this._ema||0.016)*0.95+dt*0.05; if(++this._emaN>150 && this._ema>0.024 && (this._dq||dq0)>1){ this._dq=Math.max(1,(this._dq||dq0)-0.25); this._emaN=0; } }
-    // frame cap: a fur frame is expensive, so while the animal is only idling (breathing, blinking) draw at most 60fps, 30 on
-    // phones. For 2s after a touch, drag, poke or config change there is no cap, so the squish and spring-back stay smooth.
-    // The pose above still updates every tick, only the GPU work is skipped
-    var hot=this.drag || tn-Math.max(ptr.h,this._hot||0) < 2;
+    // frame cap: a fur frame is expensive, so while the animal is nearly still (just breathing) draw at most 60fps, 30 on
+    // phones. Whenever it visibly moves, and for 2s after a touch, drag, poke or config change, there is no cap, so motion
+    // stays as smooth as the screen allows. The pose above still updates every tick, only the GPU work is skipped
+    var hot=this.drag || mv>0.06 || tn-Math.max(ptr.h,this._hot||0) < 2;
     if(!o.still && !AgentMascot.manual && !hot && key===this._k3d && tn-(this._r3||0) < 1/(AgentMascot.lite?30:60)-0.004) return;
     this._r3=tn; this._k3d=key;
     var r=this.getBoundingClientRect(), dpr=Math.min(this._dq||dq0,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
