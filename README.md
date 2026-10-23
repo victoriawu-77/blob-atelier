@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://victoriawu-77.github.io/blob-atelier/"><img src="assets/grid.png" alt="Eight Blob Atelier mascots in jelly, velvet, glass, clay, soft and matte" width="100%"></a>
+  <a href="https://victoriawu-77.github.io/blob-atelier/"><img src="assets/og.png" alt="Blob Atelier: a green fluffy bunny with pink glasses, a blue knit cat in a red beret, a felt bear, a panda and a black blob on a yellow background" width="100%"></a>
 </p>
 
 <h1 align="center">Blob Atelier</h1>
