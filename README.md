@@ -9,14 +9,13 @@ A free, open-source avatar maker and drop-in <code>&lt;agent-mascot&gt;</code> w
 
 <p align="center">
   <a href="https://victoriawu-77.github.io/blob-atelier/"><b>Try it →</b></a> &nbsp;·&nbsp;
-  <a href="assets/promo.mp4">Watch the 30s video</a> &nbsp;·&nbsp;
-  <a href="assets/animals.mp4">Watch the Animals video</a> &nbsp;·&nbsp;
+  <a href="assets/animals.mp4">Watch the video</a> &nbsp;·&nbsp;
   <a href="agent-mascot.js">agent-mascot.js</a> &nbsp;·&nbsp;
   <a href="https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895"><b>Remix on Happycapy</b></a>
 </p>
 
 <p align="center">
-  <a href="https://victoriawu-77.github.io/blob-atelier/"><img src="assets/demo.gif" alt="A pink jelly kitty mascot that gets poked, squishes, and switches between listening, thinking, talking, working, happy, done and error states, then morphs through all eight shapes" width="100%"></a>
+  <a href="https://victoriawu-77.github.io/blob-atelier/"><img src="assets/animals-demo.gif" alt="Eight 3D plush animal mascots (a green fluffy bunny in pink glasses, a pink knit cat in a red beret, a mint frog, a panda, a yellow bear in lilac glasses, a knit hamster, a blue dog in sunglasses and an orange chick in a beret) turn their eyes to follow the cursor and hop happily when poked, then the Blob Atelier editor switches the toy between frog, panda and bunny" width="540"></a>
 </p>
 
 ---
