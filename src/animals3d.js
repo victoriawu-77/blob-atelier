@@ -244,13 +244,15 @@ function renderer(){
   var pm=new THREE.PMREMGenerator(R); ENV=pm.fromScene(env,0.03).texture; pm.dispose();
   return R;
 }
+// light mode for phones, see AgentMascot.lite
+function LITE(){ return !!(window.AgentMascot && window.AgentMascot.lite); }
 function hexToColor(h){ return new THREE.Color(h); }
 /* ---------- a mascot view ---------- */
 function View(){
   var r=renderer(), sc=new THREE.Scene(); this.scene=sc; sc.environment=ENV; sc.environmentIntensity=0.85;
   var cam=new THREE.PerspectiveCamera(20,1,0.1,50); this.cam=cam;
-  var key=new THREE.DirectionalLight(0xffffff,1.5); key.position.set(-0.7,6,1.5); key.castShadow=true; key.shadow.mapSize.set(1024,1024);
-  var s=key.shadow.camera; s.left=-2.2; s.right=2.2; s.top=2.2; s.bottom=-2.2; s.near=1; s.far=12; key.shadow.radius=14; key.shadow.blurSamples=20; key.shadow.bias=-0.0004; sc.add(key); this.key=key;
+  var key=new THREE.DirectionalLight(0xffffff,1.5); key.position.set(-0.7,6,1.5); key.castShadow=true; var lt=LITE(); key.shadow.mapSize.set(lt?512:1024,lt?512:1024);
+  var s=key.shadow.camera; s.left=-2.2; s.right=2.2; s.top=2.2; s.bottom=-2.2; s.near=1; s.far=12; key.shadow.radius=lt?7:14; key.shadow.blurSamples=lt?8:20; key.shadow.bias=-0.0004; sc.add(key); this.key=key;
   var rim=new THREE.DirectionalLight(0xffffff,0.9); rim.position.set(2.8,2.6,-3.2); sc.add(rim);
   var fill=new THREE.DirectionalLight(0xfff4ea,0.35); fill.position.set(3,1.2,3); sc.add(fill);
   this.root=new THREE.Group(); sc.add(this.root); this.body=new THREE.Group(); this.root.add(this.body);
@@ -272,7 +274,7 @@ View.prototype.set=function(c){
   if(rebuild){ var self=this; if(this.mat) this.mat.dispose(); if(this.fibMat){ this.fibMat.dispose(); this.fibMat=null; } this.body.clear(); this.eyesG=null; var D=shapeData(c.shape), S=SH[c.shape], fin=FIN[c.material]||FIN.fluffy;
     this.D=D; this.S=S; this.fin=fin;
     var mat=furMaterial(fin); this.mat=mat;
-    if(fin.knit){ if(!D.knit) D.knit=knitField(D,S,fin.kr); var KU=mat.userData.U; KU.uKC.value.set(D.knit.cb); if(D.knit.ear){ KU.uKEa.value.copy(D.knit.ear.ax); KU.uKEw.value.copy(D.knit.ear.wd); KU.uKEb.value.copy(D.knit.ear.base); KU.uKEo.value=D.knit.ear.off; } } var im=new THREE.InstancedMesh(D.geo,mat,fin.shells); var I=new THREE.Matrix4(); for(var i=0;i<fin.shells;i++) im.setMatrixAt(i,I);
+    if(fin.knit){ if(!D.knit) D.knit=knitField(D,S,fin.kr); var KU=mat.userData.U; KU.uKC.value.set(D.knit.cb); if(D.knit.ear){ KU.uKEa.value.copy(D.knit.ear.ax); KU.uKEw.value.copy(D.knit.ear.wd); KU.uKEb.value.copy(D.knit.ear.base); KU.uKEo.value=D.knit.ear.off; } } var ns=LITE()?Math.max(8,Math.round(fin.shells*0.6)):fin.shells; mat.userData.U.uShells.value=ns; var im=new THREE.InstancedMesh(D.geo,mat,ns); var I=new THREE.Matrix4(); for(var i=0;i<ns;i++) im.setMatrixAt(i,I);
     im.castShadow=false; im.frustumCulled=false; this.body.add(im); this.fur=im;
     if(fin.fly){ var fk='fly:'+fin.fly; if(!D[fk]) D[fk]=flyaways(D,fin.fly,7+c.shape.length*131); this.fibMat=furMaterial(fin,mat.userData.U,true); var fm=new THREE.Mesh(D[fk],this.fibMat); fm.frustumCulled=false; this.body.add(fm); }
     // one cheap caster for the shadow map instead of every shell
