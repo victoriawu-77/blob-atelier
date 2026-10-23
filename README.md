@@ -11,7 +11,7 @@ A free, open-source avatar maker and drop-in <code>&lt;agent-mascot&gt;</code> w
   <a href="https://victoriawu-77.github.io/blob-atelier/"><b>Try it →</b></a> &nbsp;·&nbsp;
   <a href="assets/animals.mp4">Watch the video</a> &nbsp;·&nbsp;
   <a href="agent-mascot.js">agent-mascot.js</a> &nbsp;·&nbsp;
-  <a href="https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895"><b>Remix on Happycapy</b></a>
+  <a href="https://victoriawu-77.github.io/blob-atelier/remix.html"><b>Remix on Happycapy</b></a>
 </p>
 
 <p align="center">
@@ -120,7 +120,7 @@ The fabric finishes are drawn with SVG filters (`feTurbulence` fibres, `feDispla
 
 ## Remix it, no code needed
 
-Don't write code? Open the [Happycapy remix link](https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895) and you get your own copy of Blob Atelier. Describe the change you want in plain words, like "add a sleepy state", "make the kitty's ears bigger" or "translate the panel into Japanese", and Happycapy edits the project for you. You can preview your version live and share it.
+Don't write code? Open the [Happycapy remix link](https://victoriawu-77.github.io/blob-atelier/remix.html) and you get your own copy of Blob Atelier. Describe the change you want in plain words, like "add a sleepy state", "make the kitty's ears bigger" or "translate the panel into Japanese", and Happycapy edits the project for you. You can preview your version live and share it.
 
 ## Develop
 
@@ -145,7 +145,7 @@ There's nothing to install. Open `index.html` in a browser. `test/face-rebuild.t
 - [Happycapy](https://github.com/happycapy-ai) ([happycapy.ai](https://happycapy.ai)): the original app, motion, states and exports, built with Victoria; also hosts the no-code remix
 - [Cursor Agent](https://cursor.com): repository setup, v1 import and later polish
 
-Contributions are welcome. Open an issue or a pull request, or [remix it on Happycapy](https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895) if you'd rather describe your idea than code it.
+Contributions are welcome. Open an issue or a pull request, or [remix it on Happycapy](https://victoriawu-77.github.io/blob-atelier/remix.html) if you'd rather describe your idea than code it.
 
 ## License
 
