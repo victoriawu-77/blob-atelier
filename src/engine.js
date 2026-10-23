@@ -140,9 +140,11 @@ function pump3(){ var it=G3.q.shift(); if(!it){ G3.busy=false; return; } try{ G3
 var STAR='M0,-1C0.12,-0.12 0.12,-0.12 1,0C0.12,0.12 0.12,0.12 0,1C-0.12,0.12 -0.12,0.12 -1,0C-0.12,-0.12 -0.12,-0.12 0,-1Z';
 
 /* ---------- shared clock + pointer ---------- */
-var live = new Set(), last = 0, ptr = { x:0, y:0, t:-1e9 };
+var live = new Set(), last = 0, ptr = { x:0, y:0, t:-1e9, h:-1e9 };
 function now(){ return performance.now()/1000; }
-window.addEventListener('pointermove', function(e){ ptr.x=e.clientX; ptr.y=e.clientY; ptr.t=now(); }, { passive:true });
+window.addEventListener('pointermove', function(e){ ptr.x=e.clientX; ptr.y=e.clientY; ptr.t=ptr.h=now(); }, { passive:true });
+// last touch or click anywhere, so 3D animals draw every frame while someone is interacting (see the frame cap in _render3d)
+window.addEventListener('pointerdown', function(){ ptr.h=now(); }, { passive:true });
 function loop(ts){ requestAnimationFrame(loop); var t=ts/1000; var dt=last?Math.min(0.05,t-last):0; last=t; if(AgentMascot.manual) return; live.forEach(function(m){ m.step(dt); }); }
 requestAnimationFrame(loop);
 
@@ -189,6 +191,7 @@ class AgentMascot extends HTMLElement {
   get state(){ return this.cfg.state; }
   setState(s){ this.setConfig({state:s}); return this; }
   setConfig(c, fromAttr){
+    this._hot=now();
     var C = this.cfg, still = this.hasAttribute('still');
     var shp = c.shape && (ALIAS[c.shape] || c.shape);
     if(shp && GEO[shp] && shp!==C.shape){ C.shape=shp; this.from=Float64Array.from(this.cur); this.to=GEO[shp].p; this._buildParts(); this._paint();
@@ -210,7 +213,7 @@ class AgentMascot extends HTMLElement {
     this.dispatchEvent(new CustomEvent('change',{detail:this.config}));
     return this;
   }
-  poke(){ this.k.sV -= 3.2; this.k.tiltV += (this.rand()-0.5)*40; this._twitch(this.rand()<0.5?0:1, 1); this.dispatchEvent(new CustomEvent('poke')); return this; }
+  poke(){ this._hot=now(); this.k.sV -= 3.2; this.k.tiltV += (this.rand()-0.5)*40; this._twitch(this.rand()<0.5?0:1, 1); this.dispatchEvent(new CustomEvent('poke')); return this; }
   _twitch(side, amt){ var k=this.k; if(side!==1) k.eLV -= 26*amt; if(side!==0) k.eRV -= 26*amt*(side===2?0.8:1); }
   lookAt(gx,gy){ this.look = (gx==null)?null:[gx,gy]; return this; }
   _enterState(){
@@ -621,8 +624,15 @@ class AgentMascot extends HTMLElement {
     this.view3.pose({ sx:o.sx*pop, sy:o.sy*pop, tilt:-o.tilt*Math.PI/180, tx:o.bx/100, ty:-o.by/100, yaw:k.gx*0.42, pitch:k.gy*0.2,
       lid:clamp(k.lidS,0.04,1.2), eye:k.eye, expr:k.expr, mode:this.st.exprMode, earL:k.eL*0.3+k.fl*0.012, earR:k.eR*0.3+k.fl*0.012, gx:k.gx, gy:k.gy });
     // adaptive resolution: if a slow GPU can't keep up for a couple of seconds, render fewer pixels (never below 1x)
-    if(!o.still && AgentMascot.adaptive && dt>0){ this._ema=(this._ema||0.016)*0.95+dt*0.05; if(++this._emaN>150 && this._ema>0.024 && (this._dq||2)>1){ this._dq=Math.max(1,(this._dq||2)-0.25); this._emaN=0; } }
-    var r=this.getBoundingClientRect(), dpr=Math.min(this._dq||2,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
+    var dq0=AgentMascot.lite?1.5:2;
+    if(!o.still && AgentMascot.adaptive && dt>0){ this._ema=(this._ema||0.016)*0.95+dt*0.05; if(++this._emaN>150 && this._ema>0.024 && (this._dq||dq0)>1){ this._dq=Math.max(1,(this._dq||dq0)-0.25); this._emaN=0; } }
+    // frame cap: a fur frame is expensive, so while the animal is only idling (breathing, blinking) draw at most 60fps, 30 on
+    // phones. For 2s after a touch, drag, poke or config change there is no cap, so the squish and spring-back stay smooth.
+    // The pose above still updates every tick, only the GPU work is skipped
+    var hot=this.drag || tn-Math.max(ptr.h,this._hot||0) < 2;
+    if(!o.still && !AgentMascot.manual && !hot && key===this._k3d && tn-(this._r3||0) < 1/(AgentMascot.lite?30:60)-0.004) return;
+    this._r3=tn; this._k3d=key;
+    var r=this.getBoundingClientRect(), dpr=Math.min(this._dq||dq0,window.devicePixelRatio||1), w=Math.round(r.width*dpr), h=Math.round(r.height*dpr);
     if(!w||!h) return; if(this.cv3.width!==w||this.cv3.height!==h){ this.cv3.width=w; this.cv3.height=h; }
     this.view3.render(this.ctx3,w,h);
   }
@@ -671,6 +681,9 @@ AgentMascot.manual = false;
 AgentMascot.tick = function(dt){ live.forEach(function(m){ m.step(dt); }); };
 AgentMascot.PALETTE = PALETTE; AgentMascot.STATES = STATES; AgentMascot.MATERIALS = MATERIALS; AgentMascot.SHAPES = SHAPES; AgentMascot.ALIASES = ALIAS;
 AgentMascot.THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js'; AgentMascot.no3D = false; AgentMascot.adaptive = true;
+// phones and tablets (touch-first, or little memory): fewer fur shells, a smaller shadow map, a lower 3D resolution and
+// 30fps when idle, so the GPU gets to idle between frames instead of running flat out and heating up. Set before the first animal shows.
+AgentMascot.lite = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) || (navigator.deviceMemory||8) <= 4;
 AgentMascot.supports3D = function(){ return !AgentMascot.no3D && G3.st!==-1 && hasGL2(); };
 AgentMascot.ANIMALS = ANIMALS; AgentMascot.ACCESSORIES = ACCESSORIES; AgentMascot.ACC_COLORS = ACC_COLORS; AgentMascot.FABRICS = FABRICS; AgentMascot.SERIES = SERIES;
 AgentMascot.seriesOf = function(shape){ shape=ALIAS[shape]||shape; return ANIMALS.indexOf(shape)>=0?'animals':'blobs'; };
