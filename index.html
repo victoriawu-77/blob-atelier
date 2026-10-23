@@ -1583,11 +1583,15 @@ var EX={
     await EX.frames(fps,secs,size,function(img,i,n){ ctx.fillStyle=BG; ctx.fillRect(0,0,size,size); ctx.drawImage(img,0,0,size,size); var d=ctx.getImageData(0,0,size,size).data; var pal=G.quantize(d,256); var idx=G.applyPalette(d,pal); enc.writeFrame(idx,size,size,{palette:pal,delay:Math.round(1000/fps)}); if(opts.progress) opts.progress(i/n); });
     enc.finish(); return new Blob([enc.bytes()],{type:'image/gif'}); },
   webm: async function(opts){ opts=opts||{}; var size=opts.size||720, fps=opts.fps||30, secs=opts.secs||4;
-    var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d'); ctx.fillStyle=BG; ctx.fillRect(0,0,size,size);
+    // Chromium's MediaRecorder keeps the canvas alpha in VP8/VP9, so the WebM is transparent like the PNG. Other browsers
+    // may drop it (transparent would turn black), so they keep the solid background
+    var clear=!!navigator.userAgentData;
+    var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d');
+    var paint=function(img){ if(clear) ctx.clearRect(0,0,size,size); else { ctx.fillStyle=BG; ctx.fillRect(0,0,size,size); } if(img) ctx.drawImage(img,0,0,size,size); }; paint();
     var stream=cv.captureStream(0), track=stream.getVideoTracks()[0]; var mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].filter(function(m){ return MediaRecorder.isTypeSupported(m); })[0];
     var rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6}), chunks=[]; rec.ondataavailable=function(e){ if(e.data.size) chunks.push(e.data); };
     var done=new Promise(function(r){ rec.onstop=r; }); rec.start(); var t0=performance.now();
-    await EX.frames(fps,secs,size,async function(img,i,n){ ctx.fillStyle=BG; ctx.fillRect(0,0,size,size); ctx.drawImage(img,0,0,size,size); track.requestFrame && track.requestFrame(); if(opts.progress) opts.progress(i/n);
+    await EX.frames(fps,secs,size,async function(img,i,n){ paint(img); track.requestFrame && track.requestFrame(); if(opts.progress) opts.progress(i/n);
       var wait=t0+(i+1)*1000/fps-performance.now(); if(wait>0) await new Promise(function(r){ setTimeout(r,wait); }); });
     rec.stop(); await done; return new Blob(chunks,{type:'video/webm'}); }
 };

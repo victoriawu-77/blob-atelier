@@ -39,7 +39,7 @@ Pick a shape, a finish and a color, and you get a mouthless little blob that bre
 - **Motion**: spring physics, idle breathing, random blinks, cursor-following eyes with a pseudo-3D turn, and squash-and-stretch when you click or drag
 - **8 agent states** you can switch from code (see below)
 - **Randomize with taste**: only pairs finishes and colors that work together, and stays inside the series you're in
-- **Export** to SVG, PNG (transparent), GIF, WebM, or an embeddable web component
+- **Export** to SVG, PNG (transparent), GIF, WebM (transparent when exported from Chrome or Edge), or an embeddable web component
 - Your design is saved in the URL hash, so every mascot is a shareable link
 
 ## Embed
