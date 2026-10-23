@@ -10,6 +10,7 @@ A free, open-source avatar maker and drop-in <code>&lt;agent-mascot&gt;</code> w
 <p align="center">
   <a href="https://victoriawu-77.github.io/blob-atelier/"><b>Try it →</b></a> &nbsp;·&nbsp;
   <a href="assets/promo.mp4">Watch the 30s video</a> &nbsp;·&nbsp;
+  <a href="assets/animals.mp4">Watch the Animals video</a> &nbsp;·&nbsp;
   <a href="agent-mascot.js">agent-mascot.js</a> &nbsp;·&nbsp;
   <a href="https://happycapy.ai/share/files/cb21f14b-54a4-4d44-887f-efd64913d895"><b>Remix on Happycapy</b></a>
 </p>
@@ -21,6 +22,21 @@ A free, open-source avatar maker and drop-in <code>&lt;agent-mascot&gt;</code> w
 ---
 
 Pick a shape, a finish and a color, and you get a mouthless little blob that breathes, blinks, follows your cursor and squishes when you poke it. Then drop it into your agent's UI with one tag. It's vanilla JS and inline SVG, with no build step and no dependencies. The Animals series is rendered in real 3D with [three.js](https://threejs.org), which loads from a CDN only when an animal is on screen.
+
+## Animals
+
+<p align="center">
+  <a href="https://victoriawu-77.github.io/blob-atelier/#series=animals"><img src="assets/animals.png" alt="Eight 3D plush animal mascots on a cream background: a green fluffy bunny with pink glasses, a pink knit cat in a red beret, a mint frog, a panda, a yellow bear with lilac glasses, a knit hamster, a blue dog in round sunglasses and an orange chick in a cream beret, under the headline '8 plush animals, real 3D. All eyes on your cursor.'" width="70%"></a>
+</p>
+
+<p align="center"><a href="assets/animals.mp4"><b>▶ Watch the Animals video</b></a> (30 s, with sound)</p>
+
+The second series is 8 chunky plush toys in real 3D: bunny, cat, dog, frog, hamster, bear, panda and chick. They turn toward your cursor, squish when you poke them, and play all 8 agent states.
+
+- **3 fabric finishes**: long-pile **fluffy** (the default), knitted-yarn **knit** with real stitch relief, and matte needle-felted **felt**
+- **Accessories**: a felt **beret**, round **glasses** or **sunglasses**, each in 8 colours (`ink` `cream` `tomato` `blush` `mustard` `sage` `sky` `lilac`, or any hex via `acc-color`)
+- **Open them directly**: [`#series=animals`](https://victoriawu-77.github.io/blob-atelier/#series=animals) opens the Animals tab on the default green fluffy bunny with pink glasses. Every design is a link, for example [`#series=animals&shape=cat&material=knit&color=bubblegum&acc=beret&accColor=tomato`](https://victoriawu-77.github.io/blob-atelier/#series=animals&shape=cat&material=knit&color=bubblegum&acc=beret&accColor=tomato)
+- **Embed**: `<agent-mascot shape="bunny" material="fluffy" color="matcha" accessory="glasses" acc-color="blush"></agent-mascot>`
 
 ## Use it for
 
